@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<modDesc descVersion="94">
+    <author>FSTel Team</author>
+    <version>1.0.0.0</version>
+    <title>
+        <en>FSTel - Telemetry &amp; Virtual Button Box Exporter</en>
+        <de>FSTel - Telemetrie &amp; Virtuelle Button-Box</de>
+        <fr>FSTel - Télémétrie et Boîte à Boutons Virtuelle</fr>
+    </title>
+    <description>
+        <en><![CDATA[FSTel streams comprehensive real-time telemetry from your in-game tractor and attached implements to external dashboards (Android app and modern web browsers).
+Includes high-precision speed, RPM, engine load, fuel/AdBlue levels, hydraulics, PTO, folding states, fill levels, pipe position, and environment info at up to 30Hz.]]></en>
+        <de><![CDATA[FSTel überträgt umfassende Echtzeit-Telemetriedaten Ihres Traktors und Ihrer Anbaugeräte an externe Dashboards (Android-App und Webbrowser).]]></de>
+    </description>
+    <iconFilename>icon.png</iconFilename>
+    <multiplayer supported="true"/>
+
+    <extraContent>
+        <scripts>
+            <script file="FSTelTelemetry.lua"/>
+        </scripts>
+    </extraContent>
+</modDesc>

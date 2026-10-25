@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FSTel | FS25 Telemetry &amp; Virtual Button Box Terminal</title>
+  <meta name="description" content="ISOBUS-style Telemetry Dashboard and Virtual Button Box for Farming Simulator 25">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="terminal-body">
+  <!-- Top ISOBUS Navigation Bar -->
+  <header class="top-bar">
+    <div class="brand-group">
+      <div class="logo-badge">
+        <span class="logo-icon">🚜</span>
+        <span class="logo-text">FS<span class="highlight">Tel</span></span>
+      </div>
+      <div id="connectionStatus" class="status-pill status-connected">
+        <span class="status-dot"></span>
+        <span id="connectionText" class="status-label">CONNECTED (DEMO)</span>
+      </div>
+    </div>
+
+    <div class="vehicle-banner">
+      <span class="veh-label">ACTIVE MACHINE:</span>
+      <span id="vehicleName" class="veh-title">Fendt 942 Vario TMS</span>
+      <span id="vehicleCategory" class="veh-category">TRACTOR</span>
+    </div>
+
+    <div class="environment-cluster">
+      <div class="env-item" title="In-Game Clock">
+        <span class="env-icon">🕒</span>
+        <span id="envClock" class="env-val">14:28</span>
+      </div>
+      <div class="env-item" title="Weather & Temperature">
+        <span id="envWeatherIcon" class="env-icon">⛅</span>
+        <span id="envTemp" class="env-val">22°C</span>
+      </div>
+      <div class="env-item bank-item" title="Player Balance">
+        <span class="env-icon">💰</span>
+        <span id="envMoney" class="env-val">€ 184,500</span>
+      </div>
+    </div>
+
+    <div class="controls-group">
+      <button id="btnAudioToggle" class="icon-btn" title="Toggle Button Click Audio" aria-label="Audio">
+        <span class="icon">🔊</span>
+      </button>
+      <button id="btnFullscreen" class="icon-btn" title="Toggle Fullscreen Mode" aria-label="Fullscreen">
+        <span class="icon">⛶</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- View Switcher Tabs -->
+  <nav class="tab-bar">
+    <button id="tabDashboard" class="tab-btn active" data-tab="dashboard">
+      <span class="tab-icon">📊</span> DASHBOARD &amp; CONTROLS
+    </button>
+    <button id="tabButtonBox" class="tab-btn" data-tab="buttonbox">
+      <span class="tab-icon">🕹️</span> FULL BUTTON BOX MATRIX
+    </button>
+    <button id="tabImplements" class="tab-btn" data-tab="implements">
+      <span class="tab-icon">🌾</span> IMPLEMENTS &amp; TANKS
+    </button>
+    <button id="tabSettings" class="tab-btn" data-tab="settings">
+      <span class="tab-icon">⚙️</span> SYSTEM &amp; DEMO
+    </button>
+  </nav>
+
+  <!-- MAIN VIEWPORT -->
+  <main class="main-viewport">
+    <!-- VIEW 1: DASHBOARD + QUICK CONTROLS -->
+    <section id="viewDashboard" class="view-panel active-panel">
+      <div class="dashboard-grid">
+        
+        <!-- LEFT: TRACTOR TELEMETRY -->
+        <div class="dash-column tractor-col">
+          <div class="panel-card speed-card">
+            <div class="card-header">
+              <span class="card-title">GROUND SPEED</span>
+              <button id="btnSpeedUnitToggle" class="unit-toggle-btn" title="Toggle KM/H / MPH">KM/H</button>
+            </div>
+            <div class="speed-display">
+              <div class="speed-gauge-wrap">
+                <svg class="speed-arc-svg" viewBox="0 0 200 120">
+                  <path class="arc-bg" d="M 20 110 A 80 80 0 0 1 180 110" />
+                  <path id="speedArcProgress" class="arc-fg" d="M 20 110 A 80 80 0 0 1 180 110" />
+                </svg>
+                <div class="speed-readout">
+                  <span id="speedValue" class="speed-num">15.0</span>
+                  <span id="speedUnit" class="speed-unit-label">KM/H</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gear & Cruise Target -->
+            <div class="sub-drivetrain-row">
+              <div class="info-pill">
+                <span class="pill-label">GEAR</span>
+                <span id="gearValue" class="pill-value accent-green">II</span>
+              </div>
+              <div class="info-pill">
+                <span class="pill-label">CRUISE</span>
+                <span id="cruiseTarget" class="pill-value accent-amber">15 KM/H</span>
+              </div>
+              <div class="info-pill">
+                <span class="pill-label">HOURS</span>
+                <span id="operatingHours" class="pill-value">124.6 h</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- RPM & MOTOR LOAD -->
+          <div class="panel-card engine-card">
+            <div class="card-header">
+              <span class="card-title">POWERTRAIN &amp; LOAD</span>
+            </div>
+            <div class="dual-bars-container">
+              <!-- RPM Bar -->
+              <div class="meter-group">
+                <div class="meter-meta">
+                  <span class="meter-title">ENGINE RPM</span>
+                  <span id="rpmValue" class="meter-num">1,550 RPM</span>
+                </div>
+                <div class="bar-track">
+                  <div id="rpmBar" class="bar-fill rpm-fill" style="width: 70%;"></div>
+                  <div class="redline-marker" style="left: 88%;"></div>
+                </div>
+              </div>
+
+              <!-- Motor Load Bar -->
+              <div class="meter-group">
+                <div class="meter-meta">
+                  <span class="meter-title">ENGINE LOAD</span>
+                  <span id="loadValue" class="meter-num">64%</span>
+                </div>
+                <div class="bar-track">
+                  <div id="loadBar" class="bar-fill load-fill" style="width: 64%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FUEL & DEF / ADBLUE -->
+          <div class="panel-card fuel-card">
+            <div class="card-header">
+              <span class="card-title">FLUID CONSUMABLES</span>
+            </div>
+            <div class="fluid-grid">
+              <div class="fluid-item">
+                <div class="fluid-meta">
+                  <span class="fluid-name">⛽ DIESEL</span>
+                  <span id="fuelText" class="fluid-amount">385 / 500 L</span>
+                </div>
+                <div class="bar-track mini-track">
+                  <div id="fuelBar" class="bar-fill fuel-fill" style="width: 77%;"></div>
+                </div>
+              </div>
+              <div class="fluid-item">
+                <div class="fluid-meta">
+                  <span class="fluid-name">💧 DEF / ADBLUE</span>
+                  <span id="defText" class="fluid-amount">42 / 50 L</span>
+                </div>
+                <div class="bar-track mini-track">
+                  <div id="defBar" class="bar-fill def-fill" style="width: 84%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- WARNING & STATUS INDICATORS (DASH LIGHTS) -->
+          <div class="panel-card indicators-card">
+            <div class="indicators-grid">
+              <div id="indBeacon" class="indicator-pill" title="Beacon Warning Light">
+                <span class="ind-icon">🚨</span>
+                <span class="ind-label">BEACON</span>
+              </div>
+              <div id="indLowBeam" class="indicator-pill" title="Headlights">
+                <span class="ind-icon">💡</span>
+                <span class="ind-label">LOW BEAM</span>
+              </div>
+              <div id="indHighBeam" class="indicator-pill" title="High Beam">
+                <span class="ind-icon">🔦</span>
+                <span class="ind-label">HIGH BEAM</span>
+              </div>
+              <div id="indWorkFront" class="indicator-pill" title="Front Work Lights">
+                <span class="ind-icon">🔆</span>
+                <span class="ind-label">WORK FRONT</span>
+              </div>
+              <div id="indWorkRear" class="indicator-pill" title="Rear Work Lights">
+                <span class="ind-icon">🔅</span>
+                <span class="ind-label">WORK REAR</span>
+              </div>
+              <div id="indHazard" class="indicator-pill" title="Hazard Flasher">
+                <span class="ind-icon">⚠️</span>
+                <span class="ind-label">HAZARD</span>
+              </div>
+              <div id="indDiffLock" class="indicator-pill" title="Differential Lock">
+                <span class="ind-icon">🔒</span>
+                <span class="ind-label">DIFF LOCK</span>
+              </div>
+              <div id="indHandbrake" class="indicator-pill" title="Parking Handbrake">
+                <span class="ind-icon">🅿️</span>
+                <span class="ind-label">PARK BRAKE</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- CENTER: ISOBUS IMPLEMENT & TANK VIEW -->
+        <div class="dash-column implement-col">
+          <div class="panel-card active-tool-card">
+            <div class="card-header highlight-header">
+              <span class="card-title">PRIMARY IMPLEMENT (ACTIVE)</span>
+              <span id="toolPositionBadge" class="badge badge-lowered">LOWERED</span>
+            </div>
+            
+            <div class="tool-summary-row">
+              <div class="tool-info-block">
+                <h3 id="activeToolName" class="tool-name">Horsch Pronto 9 DC</h3>
+                <span class="tool-sub">Universal Seeder &amp; Fertilizer Drill</span>
+              </div>
+              <div class="tool-status-badges">
+                <span id="toolPtoBadge" class="status-tag tag-pto-on">PTO: RUNNING</span>
+                <span id="toolFoldBadge" class="status-tag tag-unfolded">UNFOLDED</span>
+                <span id="toolPipeBadge" class="status-tag tag-pipe-closed">PIPE: RETRACTED</span>
+              </div>
+            </div>
+
+            <!-- Dynamic Fill Units for Active Tool -->
+            <div class="card-subheader">
+              <span>ATTACHMENT STORAGE / TANKS</span>
+            </div>
+            <div id="fillUnitsContainer" class="fill-units-list">
+              <div class="fill-tank-card">
+                <div class="tank-meta">
+                  <span class="tank-title">🌱 SEEDS</span>
+                  <span class="tank-percent">76.4%</span>
+                </div>
+                <div class="bar-track tank-track">
+                  <div class="bar-fill tank-fill-seeds" style="width: 76.4%;"></div>
+                </div>
+                <div class="tank-volume">4,200 / 5,500 L</div>
+              </div>
+
+              <div class="fill-tank-card">
+                <div class="tank-meta">
+                  <span class="tank-title">🧪 FERTILIZER</span>
+                  <span class="tank-percent">74.0%</span>
+                </div>
+                <div class="bar-track tank-track">
+                  <div class="bar-fill tank-fill-fert" style="width: 74%;"></div>
+                </div>
+                <div class="tank-volume">1,850 / 2,500 L</div>
+              </div>
+            </div>
+
+            <!-- Visual Rig Graphic -->
+            <div class="rig-schematic-wrap">
+              <div class="schematic-tractor">🚜 TRACTOR</div>
+              <div class="schematic-hitch">══ 3-POINT HITCH ══</div>
+              <div class="schematic-implement">🌾 SEEDER (ENGAGED)</div>
+            </div>
+          </div>
+
+          <!-- Secondary Attached Implements -->
+          <div class="panel-card secondary-tools-card">
+            <div class="card-header">
+              <span class="card-title">ALL ATTACHED EQUIPMENT SLOTS</span>
+            </div>
+            <div id="implementSlotsList" class="implement-slots">
+              <div class="slot-item slot-selected">
+                <span class="slot-badge">REAR</span>
+                <span class="slot-name">Horsch Pronto 9 DC (Active)</span>
+                <span class="slot-action">CONNECTED</span>
+              </div>
+              <div class="slot-item">
+                <span class="slot-badge">FRONT</span>
+                <span class="slot-name">Weight 1500kg</span>
+                <span class="slot-action">ATTACHED</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: VIRTUAL QUICK BUTTON BOX -->
+        <div class="dash-column quick-box-col">
+          <div class="panel-card button-card">
+            <div class="card-header">
+              <span class="card-title">VIRTUAL CONTROL TERMINAL</span>
+              <span class="tap-hint">TOUCH &amp; CLICK</span>
+            </div>
+
+            <div class="quick-buttons-grid">
+              
+              <!-- Engine -->
+              <button id="btnEngine" class="tactile-btn btn-engine" data-action="ENGINE_START">
+                <div class="btn-led"></div>
+                <span class="btn-icon">⚡</span>
+                <span class="btn-name">ENGINE</span>
+                <span class="btn-sub">START / STOP</span>
+              </button>
+
+              <!-- Cruise Control Toggle -->
+              <button id="btnCruiseToggle" class="tactile-btn btn-cruise" data-action="CRUISE_TOGGLE">
+                <div class="btn-led"></div>
+                <span class="btn-icon">🎯</span>
+                <span class="btn-name">CRUISE</span>
+                <span class="btn-sub">TOGGLE</span>
+              </button>
+
+              <!-- Cruise Speed Adjust -->
+              <div class="button-split-row">
+                <button id="btnCruiseDown" class="tactile-btn btn-mini" data-action="CRUISE_SPEED_DOWN" title="Cruise Speed -">
+                  <span class="btn-icon">➖</span>
+                  <span class="btn-name">- 1 KM/H</span>
+                </button>
+                <button id="btnCruiseUp" class="tactile-btn btn-mini" data-action="CRUISE_SPEED_UP" title="Cruise Speed +">
+                  <span class="btn-icon">➕</span>
+                  <span class="btn-name">+ 1 KM/H</span>
+                </button>
+              </div>
+
+              <!-- Lower / Lift Tool -->
+              <button id="btnToolLower" class="tactile-btn btn-hydraulics" data-action="TOOL_LOWER">
+                <div class="btn-led"></div>
+                <span class="btn-icon">↕️</span>
+                <span class="btn-name">HYDRAULICS</span>
+                <span class="btn-sub">LOWER / LIFT TOOL</span>
+              </button>
+
+              <!-- Lower / Lift ALL Tools -->
+              <button id="btnToolLowerAll" class="tactile-btn btn-hydraulics-all" data-action="TOOL_LOWER_ALL">
+                <span class="btn-icon">⏫</span>
+                <span class="btn-name">LIFT / LOWER ALL</span>
+                <span class="btn-sub">FRONT &amp; REAR</span>
+              </button>
+
+              <!-- PTO / Turn On Tool -->
+              <button id="btnToolPto" class="tactile-btn btn-pto" data-action="TOOL_PTO">
+                <div class="btn-led"></div>
+                <span class="btn-icon">⟳</span>
+                <span class="btn-name">PTO POWER</span>
+                <span class="btn-sub">ENGAGE TOOL</span>
+              </button>
+
+              <!-- Fold / Unfold -->
+              <button id="btnToolFold" class="tactile-btn btn-fold" data-action="TOOL_FOLD">
+                <span class="btn-icon">⇋</span>
+                <span class="btn-name">FOLD / UNFOLD</span>
+                <span class="btn-sub">CYCLE WINGS</span>
+              </button>
+
+              <!-- Pipe Toggle -->
+              <button id="btnPipe" class="tactile-btn btn-pipe" data-action="PIPE_TOGGLE">
+                <span class="btn-icon">⇪</span>
+                <span class="btn-name">UNLOAD PIPE</span>
+                <span class="btn-sub">OPEN / CLOSE</span>
+              </button>
+
+              <!-- Beacon Light -->
+              <button id="btnBeacon" class="tactile-btn btn-beacon" data-action="LIGHTS_BEACON">
+                <div class="btn-led pulse-led"></div>
+                <span class="btn-icon">🚨</span>
+                <span class="btn-name">BEACON LIGHT</span>
+                <span class="btn-sub">ROTATING AMBER</span>
+              </button>
+
+              <!-- Work Lights -->
+              <button id="btnLightsCycle" class="tactile-btn btn-lights" data-action="LIGHTS_CYCLE">
+                <span class="btn-icon">💡</span>
+                <span class="btn-name">LIGHTS</span>
+                <span class="btn-sub">CYCLE PROFILES</span>
+              </button>
+
+              <!-- Tool Select -->
+              <button id="btnToolSelect" class="tactile-btn btn-tool-switch" data-action="TOOL_SELECT">
+                <span class="btn-icon">🔄</span>
+                <span class="btn-name">SWITCH TOOL</span>
+                <span class="btn-sub">CYCLE ATTACHMENT</span>
+              </button>
+
+              <!-- GPS Guidance -->
+              <button id="btnGps" class="tactile-btn btn-gps" data-action="GPS_TOGGLE">
+                <div class="btn-led"></div>
+                <span class="btn-icon">🧭</span>
+                <span class="btn-name">GPS STEERING</span>
+                <span class="btn-sub">GUIDANCE ON/OFF</span>
+              </button>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 2: FULLSCREEN BUTTON BOX MATRIX -->
+    <section id="viewButtonBox" class="view-panel">
+      <div class="matrix-container">
+        <div class="matrix-header">
+          <h2>HEAVY-DUTY VIRTUAL BUTTON BOX (4x4 ISOBUS MATRIX)</h2>
+          <span class="matrix-desc">Designed for tablets, touchscreen secondary monitors, and zero-latency in-game control.</span>
+        </div>
+
+        <div class="matrix-grid">
+          <!-- Column 1: Engine & Drive -->
+          <div class="matrix-group">
+            <span class="group-title">ENGINE &amp; DRIVETRAIN</span>
+            <button class="tactile-btn matrix-btn btn-engine" data-action="ENGINE_START">
+              <div class="btn-led"></div>
+              <span class="btn-icon">⚡</span>
+              <span class="btn-name">MOTOR START / STOP</span>
+              <span class="btn-key">[ENTER]</span>
+            </button>
+            <button class="tactile-btn matrix-btn btn-cruise" data-action="CRUISE_TOGGLE">
+              <div class="btn-led"></div>
+              <span class="btn-icon">🎯</span>
+              <span class="btn-name">CRUISE CONTROL</span>
+              <span class="btn-key">[3]</span>
+            </button>
+            <div class="matrix-dual-row">
+              <button class="tactile-btn matrix-btn" data-action="CRUISE_SPEED_DOWN">
+                <span class="btn-icon">➖</span>
+                <span class="btn-name">CRUISE -</span>
+                <span class="btn-key">[1]</span>
+              </button>
+              <button class="tactile-btn matrix-btn" data-action="CRUISE_SPEED_UP">
+                <span class="btn-icon">➕</span>
+                <span class="btn-name">CRUISE +</span>
+                <span class="btn-key">[2]</span>
+              </button>
+            </div>
+            <button class="tactile-btn matrix-btn" data-action="HANDBRAKE">
+              <span class="btn-icon">🅿️</span>
+              <span class="btn-name">PARKING BRAKE</span>
+              <span class="btn-key">[SPACE]</span>
+            </button>
+          </div>
+
+          <!-- Column 2: Hydraulics & Power -->
+          <div class="matrix-group">
+            <span class="group-title">HYDRAULICS &amp; PTO</span>
+            <button class="tactile-btn matrix-btn btn-hydraulics" data-action="TOOL_LOWER">
+              <div class="btn-led"></div>
+              <span class="btn-icon">↕️</span>
+              <span class="btn-name">LIFT / LOWER TOOL</span>
+              <span class="btn-key">[V]</span>
+            </button>
+            <button class="tactile-btn matrix-btn btn-hydraulics-all" data-action="TOOL_LOWER_ALL">
+              <span class="btn-icon">⏫</span>
+              <span class="btn-name">LIFT / LOWER ALL</span>
+              <span class="btn-key">[CTRL + V]</span>
+            </button>
+            <button class="tactile-btn matrix-btn btn-pto" data-action="TOOL_PTO">
+              <div class="btn-led"></div>
+              <span class="btn-icon">⟳</span>
+              <span class="btn-name">PTO SHAFT POWER</span>
+              <span class="btn-key">[B]</span>
+            </button>
+            <button class="tactile-btn matrix-btn btn-pto-all" data-action="TOOL_PTO_ALL">
+              <span class="btn-icon">🔄</span>
+              <span class="btn-name">PTO ALL TOOLS</span>
+              <span class="btn-key">[CTRL + B]</span>
+            </button>
+          </div>
+
+          <!-- Column 3: Implements & Unloading -->
+          <div class="matrix-group">
+            <span class="group-title">IMPLEMENT MECHANISMS</span>
+            <button class="tactile-btn matrix-btn btn-fold" data-action="TOOL_FOLD">
+              <span class="btn-icon">⇋</span>
+              <span class="btn-name">FOLD / UNFOLD</span>
+              <span class="btn-key">[X]</span>
+            </button>
+            <button class="tactile-btn matrix-btn btn-pipe" data-action="PIPE_TOGGLE">
+              <span class="btn-icon">⇪</span>
+              <span class="btn-name">UNLOAD PIPE</span>
+              <span class="btn-key">[O]</span>
+            </button>
+            <button class="tactile-btn matrix-btn btn-tool-switch" data-action="TOOL_SELECT">
+              <span class="btn-icon">🔄</span>
+              <span class="btn-name">CYCLE ACTIVE TOOL</span>
+              <span class="btn-key">[G]</span>
+            </button>
+            <button class="tactile-btn matrix-btn btn-gps" data-action="GPS_TOGGLE">
+              <div class="btn-led"></div>
+              <span class="btn-icon">🧭</span>
+              <span class="btn-name">GPS / GUIDANCE</span>
+              <span class="btn-key">[ALT + C]</span>
+            </button>
+          </div>
+
+          <!-- Column 4: Lighting & Work Signals -->
+          <div class="matrix-group">
+            <span class="group-title">LIGHTING &amp; SIGNALS</span>
+            <button class="tactile-btn matrix-btn btn-beacon" data-action="LIGHTS_BEACON">
+              <div class="btn-led pulse-led"></div>
+              <span class="btn-icon">🚨</span>
+              <span class="btn-name">BEACON LIGHTS</span>
+              <span class="btn-key">[HOME]</span>
+            </button>
+            <button class="tactile-btn matrix-btn btn-lights" data-action="LIGHTS_CYCLE">
+              <span class="btn-icon">💡</span>
+              <span class="btn-name">LIGHTING MODES</span>
+              <span class="btn-key">[F]</span>
+            </button>
+            <button class="tactile-btn matrix-btn" data-action="LIGHTS_WORK_FRONT">
+              <span class="btn-icon">🔆</span>
+              <span class="btn-name">FRONT WORK LIGHTS</span>
+              <span class="btn-key">[NUM 5]</span>
+            </button>
+            <button class="tactile-btn matrix-btn" data-action="LIGHTS_WORK_BACK">
+              <span class="btn-icon">🔅</span>
+              <span class="btn-name">REAR WORK LIGHTS</span>
+              <span class="btn-key">[NUM 6]</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: IMPLEMENTS & TANKS DEEP DIVE -->
+    <section id="viewImplements" class="view-panel">
+      <div class="implements-full-view">
+        <h2>ATTACHED IMPLEMENTS &amp; MATERIAL MONITOR</h2>
+        <div id="fullImplementsGrid" class="full-implements-grid">
+          <!-- Filled dynamically by JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: SETTINGS & SYSTEM STATUS -->
+    <section id="viewSettings" class="view-panel">
+      <div class="settings-card">
+        <h2>FSTel Terminal Configuration &amp; Telemetry Status</h2>
+        
+        <div class="settings-grid">
+          <div class="setting-item">
+            <span class="set-label">PC Server Bridge Status</span>
+            <span id="setServerStatus" class="set-val accent-green">ONLINE (WebSocket 8080)</span>
+          </div>
+          <div class="setting-item">
+            <span class="set-label">In-Game Telemetry Stream</span>
+            <span id="setGameStreamStatus" class="set-val accent-amber">DEMO GENERATOR (FS25 Not Detected)</span>
+          </div>
+          <div class="setting-item">
+            <span class="set-label">Incoming Telemetry Rate</span>
+            <span id="setStreamHz" class="set-val">25 Hz</span>
+          </div>
+          <div class="setting-item">
+            <span class="set-label">UDP Auto-Discovery Beacon</span>
+            <span class="set-val">ACTIVE (Port 41235)</span>
+          </div>
+        </div>
+
+        <div class="setting-actions">
+          <button id="btnToggleDemoMode" class="action-btn">
+            TOGGLE DEMO SIMULATION
+          </button>
+          <button id="btnSendTestPing" class="action-btn">
+            TEST LATENCY PING
+          </button>
+        </div>
+
+        <div class="installation-guide">
+          <h3>FS25 Mod Installation Quick Reference:</h3>
+          <ol>
+            <li>Zip file generated: <code>mod/FS25_FSTel.zip</code></li>
+            <li>Copy to: <code>Documents/My Games/FarmingSimulator2025/mods/</code></li>
+            <li>Enable <strong>FSTel Telemetry &amp; Button Box</strong> in your FS25 savegame mod selection screen.</li>
+            <li>Hop into any vehicle — telemetries stream automatically over UDP to this terminal!</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Audio click element -->
+  <audio id="clickSound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU9vT18AAAA=" type="audio/wav">
+  </audio>
+
+  <script src="app.js"></script>
+</body>
+</html>

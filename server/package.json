@@ -1,0 +1,23 @@
+{
+  "name": "fstel-server",
+  "version": "1.0.0",
+  "description": "FSTel PC Bridge Server - Farming Simulator 25 Telemetry & Button Box Hub",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "ws": "^8.18.0"
+  },
+  "keywords": [
+    "fs25",
+    "farming-simulator-25",
+    "telemetry",
+    "button-box",
+    "isobus"
+  ],
+  "author": "FSTel Team",
+  "license": "MIT"
+}
