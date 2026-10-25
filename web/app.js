@@ -196,8 +196,19 @@
     els.connectionText.textContent = text;
   }
 
+  // Action Cooldown & Debounce Map (Prevents rapid double triggers)
+  const actionCooldowns = new Map();
+
   // Dispatch Action to PC Bridge
   function dispatchAction(actionName) {
+    const now = Date.now();
+    const lastTrigger = actionCooldowns.get(actionName) || 0;
+    if (now - lastTrigger < 300) {
+      console.log(`[FSTel Client] Debounced rapid duplicate action: ${actionName}`);
+      return;
+    }
+    actionCooldowns.set(actionName, now);
+
     console.log(`[FSTel Client] Trigger action: ${actionName}`);
     playClickFeedback(false);
 
@@ -508,12 +519,19 @@
 
     // Tactile Buttons Touch & Click Binding (Smooth Mobile Scrolling Friendly)
     const tactileButtons = document.querySelectorAll('.tactile-btn');
+    let lastTouchEndTime = 0;
+
     tactileButtons.forEach((btn) => {
       const action = btn.getAttribute('data-action');
       if (!action) return;
 
-      // Desktop Mouse Clicks
+      // Desktop Mouse Clicks (Ignored if synthesized right after touch)
       btn.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; // Only primary mouse button
+        if (Date.now() - lastTouchEndTime < 650) {
+          // Synthetic mouse event after touch - ignore to prevent double trigger!
+          return;
+        }
         btn.classList.add('pressed');
         dispatchAction(action);
       });
@@ -549,14 +567,19 @@
       }, { passive: true });
 
       btn.addEventListener('touchend', (e) => {
+        lastTouchEndTime = Date.now();
         btn.classList.remove('pressed');
         if (!isTouchScrolling) {
-          // Genuine tap: trigger action
+          // Prevent synthetic mousedown/mouseup/click events in mobile browsers!
+          if (e.cancelable) {
+            e.preventDefault();
+          }
           dispatchAction(action);
         }
       });
 
       btn.addEventListener('touchcancel', () => {
+        lastTouchEndTime = Date.now();
         btn.classList.remove('pressed');
         isTouchScrolling = true;
       });

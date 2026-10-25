@@ -37,7 +37,16 @@ const actionFilePaths = [
 ];
 
 let actionSeq = 0;
+const serverActionDebounce = new Map();
+
 function dispatchGameAction(actionName) {
+  const now = Date.now();
+  const last = serverActionDebounce.get(actionName) || 0;
+  if (now - last < 250) {
+    return; // Debounce rapid duplicate action
+  }
+  serverActionDebounce.set(actionName, now);
+
   actionSeq++;
   const xmlPayload = `<action seq="${actionSeq}" name="${actionName}"/>\n`;
   for (const p of actionFilePaths) {

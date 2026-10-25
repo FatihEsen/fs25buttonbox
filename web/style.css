@@ -1379,6 +1379,20 @@ body.terminal-body {
   border-color: var(--accent-amber);
 }
 
+.btn-worker {
+  border-bottom: 3px solid #3b82f6;
+}
+
+.btn-worker.active-state {
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+.btn-worker.active-state .btn-led {
+  background: #3b82f6;
+  box-shadow: 0 0 8px #3b82f6, 0 0 12px #3b82f6;
+}
+
 /* Mini Buttons for +/- Cruise */
 .btn-mini {
   padding: 6px;

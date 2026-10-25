@@ -26,6 +26,10 @@ class InputSimulator {
       'PIPE_TOGGLE': 'o',
       'TOOL_SELECT': 'g',
 
+      // AI Helper / Worker
+      'AI_WORKER': 'h',
+      'TOGGLE_AI': 'h',
+
       // GPS / Guidance Steering Mod
       'GPS_TOGGLE': '%c' // Alt + C
     };

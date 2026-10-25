@@ -277,13 +277,53 @@ function FSTelTelemetry:executeAction(actionName, vehicle)
             end
 
         elseif actionName == "TOOL_LOWER" then
-            local target = (vehicle.selectedImplement ~= nil and vehicle.selectedImplement.object) or (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()[1] and vehicle:getAttachedImplements()[1].object) or vehicle
-            if target ~= nil then
-                local isLowered = (target.getIsLowered ~= nil) and target:getIsLowered() or false
-                if target.setLowered ~= nil then
-                    target:setLowered(not isLowered)
-                elseif vehicle.setLowered ~= nil then
-                    vehicle:setLowered(not isLowered)
+            local done = false
+            if vehicle.actionEventLower ~= nil then
+                local ok = pcall(function() vehicle:actionEventLower(nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+
+            local activeTarget = nil
+            local specAV = vehicle.spec_attacherVehicles
+            if specAV ~= nil and specAV.selectedImplement ~= nil then
+                activeTarget = specAV.selectedImplement.object or specAV.selectedImplement
+            elseif vehicle.getSelectedImplement ~= nil then
+                local sel = vehicle:getSelectedImplement()
+                if sel ~= nil then activeTarget = sel.object or sel end
+            end
+            if activeTarget == nil and vehicle.getAttachedImplements ~= nil then
+                local att = vehicle:getAttachedImplements()
+                if att ~= nil and #att > 0 then
+                    activeTarget = att[1].object or att[1]
+                end
+            end
+
+            if activeTarget ~= nil and not done then
+                if activeTarget.actionEventLower ~= nil then
+                    local ok = pcall(function() activeTarget:actionEventLower(nil, 1, nil, false) end)
+                    if ok then done = true end
+                end
+                if not done and Attachable ~= nil and Attachable.actionEventLower ~= nil then
+                    local ok = pcall(function() Attachable.actionEventLower(activeTarget, nil, 1, nil, false) end)
+                    if ok then done = true end
+                end
+            end
+
+            if not done then
+                local t = activeTarget or vehicle
+                local isLowered = false
+                if t.getIsLowered ~= nil then
+                    isLowered = t:getIsLowered() and true or false
+                end
+                local nextState = not isLowered
+                if t.setLowered ~= nil then
+                    pcall(function() t:setLowered(nextState) end)
+                end
+                if t.setIsLowered ~= nil then
+                    pcall(function() t:setIsLowered(nextState) end)
+                end
+                if vehicle.setLowered ~= nil and t ~= vehicle then
+                    pcall(function() vehicle:setLowered(nextState) end)
                 end
             end
 
@@ -325,12 +365,22 @@ function FSTelTelemetry:executeAction(actionName, vehicle)
             end
 
         elseif actionName == "TOOL_FOLD" then
+            local done = false
+            if vehicle.actionEventFold ~= nil then
+                local ok = pcall(function() vehicle:actionEventFold(nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+
             local target = nil
-            if vehicle.selectedImplement ~= nil and vehicle.selectedImplement.object ~= nil and vehicle.selectedImplement.object.spec_foldable ~= nil then
-                target = vehicle.selectedImplement.object
-            elseif vehicle.spec_foldable ~= nil then
+            local specAV = vehicle.spec_attacherVehicles
+            if specAV ~= nil and specAV.selectedImplement ~= nil then
+                local obj = specAV.selectedImplement.object or specAV.selectedImplement
+                if obj ~= nil and obj.spec_foldable ~= nil then target = obj end
+            end
+            if target == nil and vehicle.spec_foldable ~= nil then
                 target = vehicle
-            elseif vehicle.getAttachedImplements ~= nil then
+            end
+            if target == nil and vehicle.getAttachedImplements ~= nil then
                 for _, it in ipairs(vehicle:getAttachedImplements()) do
                     if it.object ~= nil and it.object.spec_foldable ~= nil then
                         target = it.object
@@ -339,21 +389,35 @@ function FSTelTelemetry:executeAction(actionName, vehicle)
                 end
             end
 
-            if target ~= nil and target.spec_foldable ~= nil and target.setFoldState ~= nil then
+            if target ~= nil and not done then
+                if target.actionEventFold ~= nil then
+                    local ok = pcall(function() target:actionEventFold(nil, 1, nil, false) end)
+                    if ok then done = true end
+                end
+                if not done and Foldable ~= nil and Foldable.actionEventFold ~= nil then
+                    local ok = pcall(function() Foldable.actionEventFold(target, nil, 1, nil, false) end)
+                    if ok then done = true end
+                end
+            end
+
+            if target ~= nil and target.spec_foldable ~= nil and not done then
                 local spec = target.spec_foldable
                 local foldDir = spec.foldMoveDirection or 0
                 if foldDir == 0 then
-                    local curTime = spec.foldAnimTime or 0
-                    local defaultDir = spec.turnOnFoldDirection or 1
-                    if curTime >= 0.5 then
-                        foldDir = (defaultDir == 1) and -1 or 1
-                    else
-                        foldDir = defaultDir
+                    local isFolded = false
+                    if target.getIsFolded ~= nil then
+                        isFolded = target:getIsFolded() and true or false
+                    elseif spec.foldAnimTime ~= nil then
+                        isFolded = (spec.foldAnimTime >= 0.5)
                     end
+                    local turnOnDir = spec.turnOnFoldDirection or 1
+                    foldDir = isFolded and -turnOnDir or turnOnDir
                 else
                     foldDir = -foldDir
                 end
-                target:setFoldState(foldDir, true)
+                if target.setFoldState ~= nil then
+                    pcall(function() target:setFoldState(foldDir, true) end)
+                end
             end
 
         elseif actionName == "PIPE_TOGGLE" then
@@ -372,15 +436,64 @@ function FSTelTelemetry:executeAction(actionName, vehicle)
             end
 
         elseif actionName == "TOOL_SELECT" then
-            if vehicle.setSelectedImplement ~= nil and vehicle.getAttachedImplements ~= nil then
-                local list = vehicle:getAttachedImplements()
-                if #list > 0 then
-                    local curIdx = 1
+            local done = false
+            if vehicle.actionEventCycleImplement ~= nil then
+                local ok = pcall(function() vehicle:actionEventCycleImplement(nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done and AttacherVehicles ~= nil and AttacherVehicles.actionEventCycleImplement ~= nil then
+                local ok = pcall(function() AttacherVehicles.actionEventCycleImplement(vehicle, nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+
+            if not done then
+                local specAV = vehicle.spec_attacherVehicles
+                local list = (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()) or (specAV and specAV.attachedImplements)
+                if list ~= nil and #list > 0 then
+                    local currentSel = (specAV and specAV.selectedImplement) or (vehicle.getSelectedImplement ~= nil and vehicle:getSelectedImplement())
+                    local curIdx = 0
                     for i, it in ipairs(list) do
-                        if it == vehicle.selectedImplement then curIdx = i break end
+                        if it == currentSel or (it.object ~= nil and it.object == currentSel) then
+                            curIdx = i
+                            break
+                        end
                     end
                     local nextIdx = (curIdx % #list) + 1
-                    vehicle:setSelectedImplement(list[nextIdx])
+                    if vehicle.setSelectedImplement ~= nil then
+                        pcall(function() vehicle:setSelectedImplement(list[nextIdx]) end)
+                    elseif specAV ~= nil and specAV.setSelectedImplement ~= nil then
+                        pcall(function() specAV:setSelectedImplement(list[nextIdx]) end)
+                    end
+                end
+            end
+
+        elseif actionName == "AI_WORKER" or actionName == "TOGGLE_AI" then
+            local done = false
+            if vehicle.actionEventToggleAI ~= nil then
+                local ok = pcall(function() vehicle:actionEventToggleAI(nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done and AIJobVehicle ~= nil and AIJobVehicle.actionEventToggleAI ~= nil then
+                local ok = pcall(function() AIJobVehicle.actionEventToggleAI(vehicle, nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done then
+                local isAi = false
+                if vehicle.getIsAIActive ~= nil then
+                    isAi = vehicle:getIsAIActive() and true or false
+                end
+                if isAi then
+                    if vehicle.stopCurrentAIJob ~= nil then
+                        pcall(function() vehicle:stopCurrentAIJob(1) end)
+                    elseif vehicle.stopAIVehicle ~= nil then
+                        pcall(function() vehicle:stopAIVehicle(1) end)
+                    end
+                else
+                    if vehicle.startAIVehicle ~= nil then
+                        pcall(function() vehicle:startAIVehicle() end)
+                    elseif vehicle.toggleAIVehicle ~= nil then
+                        pcall(function() vehicle:toggleAIVehicle() end)
+                    end
                 end
             end
 
@@ -594,11 +707,23 @@ function FSTelTelemetry:extractVehicleData(vehicle)
             local attachedList = vehicle:getAttachedImplements()
             for idx, item in ipairs(attachedList) do
                 if item.object ~= nil then
-                    local implObj = item.object
+                    local isSel = false
+                    local specAV = vehicle.spec_attacherVehicles
+                    if specAV ~= nil and specAV.selectedImplement ~= nil then
+                        isSel = (specAV.selectedImplement == item or specAV.selectedImplement.object == implObj)
+                    elseif vehicle.getSelectedImplement ~= nil then
+                        local sel = vehicle:getSelectedImplement()
+                        isSel = (sel == item or sel == implObj or (sel ~= nil and sel.object == implObj))
+                    elseif vehicle.selectedImplement ~= nil then
+                        isSel = (vehicle.selectedImplement == item or vehicle.selectedImplement.object == implObj)
+                    elseif idx == 1 then
+                        isSel = true
+                    end
+
                     local implInfo = {
                         index = idx,
                         name = (implObj.getName ~= nil) and tostring(implObj:getName()) or "Implement",
-                        isSelected = (vehicle.selectedImplement == item),
+                        isSelected = isSel,
                         isLowered = false,
                         isTurnedOn = false,
                         isFolded = false,
