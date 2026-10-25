@@ -1,7 +1,9 @@
 const http = require('http');
 const path = require('path');
+const os = require('os');
 const express = require('express');
 const UdpTelemetryListener = require('./udpTelemetryListener');
+const FileTelemetryListener = require('./fileTelemetryListener');
 const UdpDiscoveryBeacon = require('./udpDiscoveryBeacon');
 const WebSocketServerHub = require('./websocketServer');
 const InputSimulator = require('./inputSimulator');
@@ -38,16 +40,37 @@ const wsHub = new WebSocketServerHub({
   }
 });
 
-const demoSim = new DemoSimulator((demoData) => {
-  if (useDemoFallback && !udpListener.hasRecentData(2500)) {
-    latestData = demoData;
-    wsHub.broadcast(demoData);
+// Candidate paths for FS25 game telemetry file
+const possiblePaths = [
+  'D:/Documents/My Games/FarmingSimulator2025/fstel_telemetry.json',
+  'D:/Documents/My Games/FarmingSimulator2025/fstel_telemetry.xml',
+  path.join(os.homedir(), 'Documents/My Games/FarmingSimulator2025/fstel_telemetry.json'),
+  path.join(os.homedir(), 'Documents/My Games/FarmingSimulator2025/fstel_telemetry.xml')
+];
+
+function hasLiveGameData() {
+  return udpListener.hasRecentData(2500) || fileListener.hasRecentData(2500);
+}
+
+const fileListener = new FileTelemetryListener({
+  paths: possiblePaths,
+  intervalMs: 35,
+  onTelemetryUpdate: (gameData) => {
+    latestData = gameData;
+    wsHub.broadcast(gameData);
   }
 });
 
 const udpListener = new UdpTelemetryListener(UDP_TELEMETRY_PORT, (gameData) => {
   latestData = gameData;
   wsHub.broadcast(gameData);
+});
+
+const demoSim = new DemoSimulator((demoData) => {
+  if (useDemoFallback && !hasLiveGameData()) {
+    latestData = demoData;
+    wsHub.broadcast(demoData);
+  }
 });
 
 const discoveryBeacon = new UdpDiscoveryBeacon({
@@ -58,12 +81,13 @@ const discoveryBeacon = new UdpDiscoveryBeacon({
 
 // REST API Endpoints
 app.get('/api/status', (req, res) => {
-  const hasGame = udpListener.hasRecentData(2500);
+  const hasGame = hasLiveGameData();
+  const currentHz = fileListener.currentHz > 0 ? fileListener.currentHz : udpListener.currentHz;
   res.json({
     online: true,
     gameConnected: hasGame,
     demoModeActive: useDemoFallback && !hasGame,
-    incomingHz: udpListener.currentHz,
+    incomingHz: currentHz,
     connectedClients: wsHub.clients.size,
     ports: {
       http: HTTP_PORT,
@@ -102,6 +126,7 @@ async function main() {
     console.error(`Could not bind UDP Telemetry Listener:`, err.message);
   }
 
+  fileListener.start();
   discoveryBeacon.start();
   wsHub.start();
 
@@ -114,7 +139,7 @@ async function main() {
     if (ips.length > 0) {
       console.log(`[LAN Access] Mobile / Tablet Dashboard URL: http://${ips[0].address}:${HTTP_PORT}`);
     }
-    console.log(`[Ready] Waiting for FS25 game telemetry or external clients...\n`);
+    console.log(`[Ready] Waiting for FS25 game telemetry (File IPC or UDP) or external clients...\n`);
   });
 }
 

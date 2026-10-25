@@ -2,30 +2,37 @@
     FSTel - Telemetry & Virtual Button Box Exporter for Farming Simulator 25
     Compatible with GIANTS Engine 10 / FS25
 
-    Hooks into the active vehicle and broadcasts structured telemetry over UDP localhost.
+    High-speed, zero-dependency telemetry pipeline for FS25.
 ]]
 
 print("[FSTel] ========================================================")
-print("[FSTel] FSTel Telemetry Mod script loaded by GIANTS Engine 10")
+print("[FSTel] FSTel Telemetry Engine starting up...")
+print("[FSTel] Diagnostics:")
+print("[FSTel]   type(io) = " .. type(io))
+if type(io) == "table" then
+    print("[FSTel]   type(io.open) = " .. type(io.open))
+end
+print("[FSTel]   type(createXMLFile) = " .. type(createXMLFile))
+print("[FSTel]   type(getUserProfileAppPath) = " .. type(getUserProfileAppPath))
+if getUserProfileAppPath ~= nil then
+    print("[FSTel]   getUserProfileAppPath() = " .. tostring(getUserProfileAppPath()))
+end
 print("[FSTel] ========================================================")
 
 FSTelTelemetry = {}
 FSTelTelemetry.MOD_NAME = g_currentModName or "FS25_FSTel"
 FSTelTelemetry.VERSION = "1.0.0.0"
 
--- Configuration
-FSTelTelemetry.HOST = "127.0.0.1"
-FSTelTelemetry.PORT = 41234
-FSTelTelemetry.TARGET_HZ = 30 -- Target 30 updates per second (~33ms)
+-- Target ~20-30 updates per second
+FSTelTelemetry.TARGET_HZ = 25
 FSTelTelemetry.UPDATE_INTERVAL_MS = math.floor(1000 / FSTelTelemetry.TARGET_HZ)
 
--- State
-FSTelTelemetry.socket = nil
-FSTelTelemetry.udp = nil
-FSTelTelemetry.isSocketReady = false
-FSTelTelemetry.hasLoggedSocketFail = false
 FSTelTelemetry.lastSendTime = 0
 FSTelTelemetry.packetSeq = 0
+FSTelTelemetry.telemetryFilePath = nil
+FSTelTelemetry.useIoOpen = false
+FSTelTelemetry.useXmlFallback = false
+FSTelTelemetry.hasLoggedSetup = false
 
 -- Bitwise Helper
 local function safeBitAnd(a, b)
@@ -35,7 +42,7 @@ local function safeBitAnd(a, b)
 end
 
 -- =========================================================================
--- Pure-Lua Safe JSON Serializer (No external dependencies required)
+-- Pure-Lua Safe JSON Serializer
 -- =========================================================================
 local FSTelJson = {}
 
@@ -105,74 +112,63 @@ function FSTelJson.encode(val)
 end
 
 -- =========================================================================
--- Mod Lifecycle & UDP Networking
+-- Transport Initialization
 -- =========================================================================
 
+function FSTelTelemetry:initTransport()
+    if self.hasLoggedSetup then return end
+    self.hasLoggedSetup = true
+
+    local basePath = ""
+    if getUserProfileAppPath ~= nil then
+        basePath = getUserProfileAppPath()
+    end
+
+    if basePath == nil or basePath == "" then
+        basePath = "D:/Documents/My Games/FarmingSimulator2025/"
+    end
+
+    -- Normalize slashes
+    basePath = basePath:gsub("\\", "/")
+    if not basePath:match("/$") then
+        basePath = basePath .. "/"
+    end
+
+    self.jsonFilePath = basePath .. "fstel_telemetry.json"
+    self.xmlFilePath = basePath .. "fstel_telemetry.xml"
+
+    -- Test if io.open is available
+    if type(io) == "table" and type(io.open) == "function" then
+        local testFile = io.open(self.jsonFilePath, "w")
+        if testFile ~= nil then
+            testFile:write('{"status":"init"}\n')
+            testFile:close()
+            self.useIoOpen = true
+            print(string.format("[%s] High-speed JSON File IPC active: %s", self.MOD_NAME, self.jsonFilePath))
+            return
+        end
+    end
+
+    -- Fallback to GIANTS XML API
+    if createXMLFile ~= nil and saveXMLFile ~= nil and setXMLString ~= nil then
+        self.useXmlFallback = true
+        print(string.format("[%s] GIANTS XML IPC active: %s", self.MOD_NAME, self.xmlFilePath))
+        return
+    end
+
+    print(string.format("[%s] ERROR: Neither io.open nor GIANTS XML file API available!", self.MOD_NAME))
+end
+
 function FSTelTelemetry:loadMap(name)
-    print(string.format("[%s] loadMap triggered. Initializing network...", self.MOD_NAME))
-    self:initNetwork()
+    self:initTransport()
 end
 
 function FSTelTelemetry:deleteMap()
-    if self.udp ~= nil then
-        pcall(function()
-            self.udp:close()
-        end)
-        self.udp = nil
-    end
-    self.isSocketReady = false
-    print(string.format("[%s] Network socket closed.", self.MOD_NAME))
-end
-
-function FSTelTelemetry:initNetwork()
-    if self.isSocketReady and self.udp ~= nil then
-        return true
-    end
-
-    local socketModule = nil
-    if type(socket) == "table" and type(socket.udp) == "function" then
-        socketModule = socket
-    else
-        local ok, mod = pcall(function()
-            return require("socket")
-        end)
-        if ok and mod ~= nil then
-            socketModule = mod
-        end
-    end
-
-    if socketModule ~= nil then
-        self.socket = socketModule
-        local ok, client = pcall(function()
-            local u = self.socket.udp()
-            u:setpeername(self.HOST, self.PORT)
-            u:settimeout(0)
-            return u
-        end)
-
-        if ok and client ~= nil then
-            self.udp = client
-            self.isSocketReady = true
-            print(string.format("[%s] SUCCESS: UDP socket connected to %s:%d (Target rate: %d Hz)", self.MOD_NAME, self.HOST, self.PORT, self.TARGET_HZ))
-            return true
-        else
-            if not self.hasLoggedSocketFail then
-                print(string.format("[%s] WARNING: Failed to create UDP socket: %s", self.MOD_NAME, tostring(client)))
-                self.hasLoggedSocketFail = true
-            end
-        end
-    else
-        if not self.hasLoggedSocketFail then
-            print(string.format("[%s] WARNING: Lua 'socket' module not found in runtime.", self.MOD_NAME))
-            self.hasLoggedSocketFail = true
-        end
-    end
-
-    return false
+    print(string.format("[%s] Exiting map.", self.MOD_NAME))
 end
 
 -- =========================================================================
--- Safe Telemetry Extraction
+-- Safe Vehicle Data Extraction
 -- =========================================================================
 
 function FSTelTelemetry:extractVehicleData(vehicle)
@@ -224,12 +220,10 @@ function FSTelTelemetry:extractVehicleData(vehicle)
     }
 
     pcall(function()
-        -- Name
         if vehicle.getName ~= nil then
             data.name = vehicle:getName() or data.name
         end
 
-        -- Speed
         if vehicle.getLastSpeed ~= nil then
             local kmh = vehicle:getLastSpeed()
             if kmh < 0.05 then kmh = 0 end
@@ -237,12 +231,10 @@ function FSTelTelemetry:extractVehicleData(vehicle)
             data.speedMph = kmh * 0.621371
         end
 
-        -- Operating Hours
         if vehicle.operatingTime ~= nil then
             data.operatingHours = vehicle.operatingTime / (1000 * 60 * 60)
         end
 
-        -- Motor
         if vehicle.getIsMotorStarted ~= nil then
             data.isEngineStarted = vehicle:getIsMotorStarted()
         end
@@ -250,15 +242,9 @@ function FSTelTelemetry:extractVehicleData(vehicle)
         if vehicle.getMotor ~= nil then
             local motor = vehicle:getMotor()
             if motor ~= nil then
-                if motor.getLastMotorRpm ~= nil then
-                    data.rpm = motor:getLastMotorRpm()
-                end
-                if motor.getMinRpm ~= nil then
-                    data.minRpm = motor:getMinRpm()
-                end
-                if motor.getMaxRpm ~= nil then
-                    data.maxRpm = motor:getMaxRpm()
-                end
+                if motor.getLastMotorRpm ~= nil then data.rpm = motor:getLastMotorRpm() end
+                if motor.getMinRpm ~= nil then data.minRpm = motor:getMinRpm() end
+                if motor.getMaxRpm ~= nil then data.maxRpm = motor:getMaxRpm() end
 
                 if motor.getMotorLoadPercentage ~= nil then
                     data.motorLoadPercent = motor:getMotorLoadPercentage() * 100
@@ -279,14 +265,12 @@ function FSTelTelemetry:extractVehicleData(vehicle)
             end
         end
 
-        -- Cruise
         local specDrivable = vehicle.spec_drivable
         if specDrivable ~= nil and specDrivable.cruiseControl ~= nil then
             data.cruiseControl.isActive = (specDrivable.cruiseControl.state == 1)
             data.cruiseControl.targetSpeed = specDrivable.cruiseControl.speed or 0
         end
 
-        -- Fuel & DEF
         if vehicle.getFillUnits ~= nil then
             for _, fillUnit in pairs(vehicle:getFillUnits()) do
                 local fillType = fillUnit.fillType
@@ -311,7 +295,6 @@ function FSTelTelemetry:extractVehicleData(vehicle)
             end
         end
 
-        -- Lights
         local specLights = vehicle.spec_lights
         if specLights ~= nil then
             data.lights.beaconActive = specLights.beaconLightsActive or false
@@ -325,7 +308,6 @@ function FSTelTelemetry:extractVehicleData(vehicle)
             end
         end
 
-        -- Implements
         if vehicle.getAttachedImplements ~= nil then
             local attachedList = vehicle:getAttachedImplements()
             for idx, item in ipairs(attachedList) do
@@ -437,11 +419,8 @@ end
 -- =========================================================================
 
 function FSTelTelemetry:update(dt)
-    if not self.isSocketReady then
-        self:initNetwork()
-        if not self.isSocketReady then
-            return
-        end
+    if not self.hasLoggedSetup then
+        self:initTransport()
     end
 
     local currentTime = g_time or 0
@@ -467,9 +446,26 @@ function FSTelTelemetry:update(dt)
 
     local jsonStr = FSTelJson.encode(packet)
 
-    pcall(function()
-        self.udp:send(jsonStr)
-    end)
+    -- 1. High-speed JSON File
+    if self.useIoOpen and self.jsonFilePath ~= nil then
+        pcall(function()
+            local f = io.open(self.jsonFilePath, "w")
+            if f ~= nil then
+                f:write(jsonStr)
+                f:close()
+            end
+        end)
+    -- 2. GIANTS XML IPC Fallback
+    elseif self.useXmlFallback and self.xmlFilePath ~= nil then
+        pcall(function()
+            local xmlFile = createXMLFile("fstelDoc", self.xmlFilePath, "fstel")
+            if xmlFile ~= nil and xmlFile ~= 0 then
+                setXMLString(xmlFile, "fstel#payload", jsonStr)
+                saveXMLFile(xmlFile)
+                delete(xmlFile)
+            end
+        end)
+    end
 end
 
 -- Register Mod Event Listener into GIANTS Engine
