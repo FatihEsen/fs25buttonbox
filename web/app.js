@@ -109,12 +109,26 @@
     indHazard: document.getElementById('indHazard'),
     indDiffLock: document.getElementById('indDiffLock'),
     indHandbrake: document.getElementById('indHandbrake'),
+    indBelts: document.getElementById('indBelts'),
+
+    // Map View Elements
+    mapCanvas: document.getElementById('fieldMapCanvas'),
+    mapPosCoord: document.getElementById('mapPosCoord'),
+    mapHeading: document.getElementById('mapHeading'),
+    mapTitle: document.getElementById('mapTitle'),
+    mapWorkedArea: document.getElementById('mapWorkedArea'),
+    compassNeedle: document.getElementById('compassNeedle'),
+    btnMapCenter: document.getElementById('btnMapCenter'),
+    btnMapZoomIn: document.getElementById('btnMapZoomIn'),
+    btnMapZoomOut: document.getElementById('btnMapZoomOut'),
+    btnMapClearTrail: document.getElementById('btnMapClearTrail'),
 
     // Views
     tabs: document.querySelectorAll('.tab-btn'),
     viewPanels: {
       dashboard: document.getElementById('viewDashboard'),
       buttonbox: document.getElementById('viewButtonBox'),
+      map: document.getElementById('viewMap'),
       settings: document.getElementById('viewSettings')
     }
   };
@@ -316,7 +330,7 @@
     }
     if (veh.drivetrain) {
       toggleActive(els.indDiffLock, veh.drivetrain.diffLockRear || veh.drivetrain.diffLockFront);
-      toggleActive(els.indHandbrake, veh.drivetrain.handbrake);
+      toggleActive(els.indBelts, veh.tensionBeltsActive);
     }
 
     // Synchronize Virtual Buttons State LED
@@ -340,6 +354,11 @@
 
     // Attached Implements & Fill Units
     renderImplements(veh.implements || []);
+
+    // Update Tactical Field Map
+    if (typeof fieldMap !== 'undefined' && fieldMap.update) {
+      fieldMap.update(telemetry);
+    }
   }
 
   function toggleActive(elem, isActive) {
@@ -363,8 +382,58 @@
     });
 
     // Beacon buttons
-    document.querySelectorAll('.btn-beacon, #btnBeacon').forEach(el => {
+    document.querySelectorAll('.btn-beacon, #btnBeacon, [data-action="LIGHTS_BEACON"]').forEach(el => {
       el.classList.toggle('active-state', !!(veh.lights && veh.lights.beaconActive));
+    });
+
+    // Headlights (Low Beam & High Beam Colors)
+    const hasHighBeam = !!(veh.lights && veh.lights.highBeam);
+    const hasLowBeam = !!(veh.lights && veh.lights.lowBeam);
+    document.querySelectorAll('.btn-lights, [data-action="LIGHTS_CYCLE"]').forEach(el => {
+      el.classList.toggle('active-high-beam', hasHighBeam);
+      el.classList.toggle('active-low-beam', !hasHighBeam && hasLowBeam);
+      el.classList.toggle('active-state', hasHighBeam || hasLowBeam);
+    });
+
+    // Hazards Blinking Button State
+    const isHazard = !!(veh.lights && veh.lights.turnLightState === 3);
+    document.querySelectorAll('.btn-hazard, [data-action="LIGHTS_HAZARD"]').forEach(el => {
+      el.classList.toggle('active-hazard-flash', isHazard);
+      el.classList.toggle('active-state', isHazard);
+    });
+
+    // Front & Rear Work Lights
+    document.querySelectorAll('[data-action="LIGHTS_WORK_FRONT"]').forEach(el => {
+      el.classList.toggle('active-state', !!(veh.lights && veh.lights.workLightsFront));
+    });
+    document.querySelectorAll('[data-action="LIGHTS_WORK_BACK"]').forEach(el => {
+      el.classList.toggle('active-state', !!(veh.lights && veh.lights.workLightsBack));
+    });
+
+    // Diff Lock & 4WD
+    const hasDiff = !!(veh.drivetrain && (veh.drivetrain.diffLockRear || veh.drivetrain.diffLockFront));
+    document.querySelectorAll('[data-action="DIFF_LOCK"]').forEach(el => {
+      el.classList.toggle('active-state', hasDiff);
+    });
+    document.querySelectorAll('[data-action="ALL_WHEEL_DRIVE"]').forEach(el => {
+      el.classList.toggle('active-state', !!(veh.drivetrain && veh.drivetrain.allWheelDrive));
+    });
+
+    // AI Worker
+    const isAi = !!(veh.isAIActive || veh.aiActive);
+    document.querySelectorAll('.btn-worker, [data-action="AI_WORKER"]').forEach(el => {
+      el.classList.toggle('active-state', isAi);
+    });
+
+    // Utility buttons (Wipers, Belts, Cover)
+    document.querySelectorAll('.btn-wipers, [data-action="WIPERS_TOGGLE"]').forEach(el => {
+      el.classList.toggle('active-state', !!veh.wipersActive);
+    });
+    document.querySelectorAll('.btn-belts, [data-action="TOGGLE_TENSION_BELTS"]').forEach(el => {
+      el.classList.toggle('active-state', !!veh.tensionBeltsActive);
+    });
+    document.querySelectorAll('.btn-cover, [data-action="COVER_TOGGLE"]').forEach(el => {
+      el.classList.toggle('active-state', !!veh.coverOpen);
     });
 
     // Primary tool status
@@ -498,6 +567,309 @@
     });
   }
 
+  // Tactical GPS Field Map Engine
+  const fieldMap = {
+    canvas: null,
+    ctx: null,
+    trail: [],
+    maxTrailPoints: 1200,
+    cameraX: 0,
+    cameraZ: 0,
+    zoom: 2.2, // pixels per meter
+    lastPos: null,
+    workedAreaM2: 0,
+    isDragging: false,
+    dragStartX: 0,
+    dragStartY: 0,
+    dragCamStartX: 0,
+    dragCamStartZ: 0,
+    autoCenter: true,
+
+    init() {
+      this.canvas = els.mapCanvas;
+      if (!this.canvas) return;
+      this.ctx = this.canvas.getContext('2d');
+      this.setupCanvasSize();
+      window.addEventListener('resize', () => this.setupCanvasSize());
+
+      // Interactive Controls
+      if (els.btnMapCenter) {
+        els.btnMapCenter.addEventListener('click', () => {
+          this.autoCenter = true;
+          if (this.lastPos) {
+            this.cameraX = this.lastPos.x;
+            this.cameraZ = this.lastPos.z;
+          }
+          this.render();
+        });
+      }
+      if (els.btnMapZoomIn) {
+        els.btnMapZoomIn.addEventListener('click', () => {
+          this.zoom = Math.min(10, this.zoom * 1.35);
+          this.render();
+        });
+      }
+      if (els.btnMapZoomOut) {
+        els.btnMapZoomOut.addEventListener('click', () => {
+          this.zoom = Math.max(0.4, this.zoom / 1.35);
+          this.render();
+        });
+      }
+      if (els.btnMapClearTrail) {
+        els.btnMapClearTrail.addEventListener('click', () => {
+          this.trail = [];
+          this.workedAreaM2 = 0;
+          if (els.mapWorkedArea) els.mapWorkedArea.textContent = '0.00 ha';
+          this.render();
+        });
+      }
+
+      // Drag to Pan
+      this.canvas.addEventListener('mousedown', (e) => {
+        this.isDragging = true;
+        this.autoCenter = false;
+        this.dragStartX = e.clientX;
+        this.dragStartY = e.clientY;
+        this.dragCamStartX = this.cameraX;
+        this.dragCamStartZ = this.cameraZ;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!this.isDragging) return;
+        const dx = (e.clientX - this.dragStartX) / this.zoom;
+        const dz = (e.clientY - this.dragStartY) / this.zoom;
+        this.cameraX = this.dragCamStartX - dx;
+        this.cameraZ = this.dragCamStartZ + dz;
+        this.render();
+      });
+
+      window.addEventListener('mouseup', () => {
+        this.isDragging = false;
+      });
+
+      // Touch Pan
+      let touchStartX = 0, touchStartY = 0;
+      this.canvas.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches.length === 1) {
+          this.isDragging = true;
+          this.autoCenter = false;
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          this.dragCamStartX = this.cameraX;
+          this.dragCamStartZ = this.cameraZ;
+        }
+      }, { passive: true });
+
+      this.canvas.addEventListener('touchmove', (e) => {
+        if (this.isDragging && e.touches && e.touches.length === 1) {
+          const dx = (e.touches[0].clientX - touchStartX) / this.zoom;
+          const dz = (e.touches[0].clientY - touchStartY) / this.zoom;
+          this.cameraX = this.dragCamStartX - dx;
+          this.cameraZ = this.dragCamStartZ + dz;
+          this.render();
+        }
+      }, { passive: true });
+
+      this.canvas.addEventListener('touchend', () => {
+        this.isDragging = false;
+      });
+
+      // Mouse Wheel Zoom
+      this.canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.15 : 0.85;
+        this.zoom = Math.min(10, Math.max(0.4, this.zoom * factor));
+        this.render();
+      }, { passive: false });
+
+      this.render();
+    },
+
+    setupCanvasSize() {
+      if (!this.canvas) return;
+      const rect = this.canvas.parentElement ? this.canvas.parentElement.getBoundingClientRect() : null;
+      this.canvas.width = (rect && rect.width > 50) ? rect.width : 800;
+      this.canvas.height = (rect && rect.height > 50) ? rect.height : 500;
+      this.render();
+    },
+
+    update(telemetry) {
+      if (!telemetry || !telemetry.vehicle) return;
+      const veh = telemetry.vehicle;
+      const pos = veh.position || { x: 0, y: 0, z: 0, heading: 0 };
+
+      // Update HUD coordinates
+      if (els.mapPosCoord) {
+        els.mapPosCoord.textContent = `X: ${pos.x.toFixed(1)} | Z: ${pos.z.toFixed(1)}`;
+      }
+
+      // Compass Heading
+      const heading = pos.heading || 0;
+      if (els.mapHeading) {
+        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        const dir = directions[Math.round(heading / 45) % 8];
+        els.mapHeading.textContent = `${heading.toString().padStart(3, '0')}° ${dir}`;
+      }
+      if (els.compassNeedle) {
+        els.compassNeedle.style.transform = `rotate(${heading}deg)`;
+      }
+
+      if (telemetry.environment && telemetry.environment.mapName && els.mapTitle) {
+        els.mapTitle.textContent = telemetry.environment.mapName.toUpperCase();
+      }
+
+      // Track breadcrumb trail
+      const primaryTool = (veh.implements || []).find(i => i.isSelected) || (veh.implements && veh.implements[0]);
+      const isWorking = !!(primaryTool && (primaryTool.isLowered || primaryTool.isTurnedOn));
+
+      if (this.lastPos) {
+        const dist = Math.hypot(pos.x - this.lastPos.x, pos.z - this.lastPos.z);
+        if (dist > 1.2) { // Add point every 1.2m of movement
+          this.trail.push({ x: pos.x, z: pos.z, isWorking });
+          if (this.trail.length > this.maxTrailPoints) this.trail.shift();
+
+          // Calculate worked area
+          if (isWorking && dist < 50) {
+            const toolWidth = 9.0; // Typical seeder/cultivator working width (meters)
+            this.workedAreaM2 += dist * toolWidth;
+            const ha = this.workedAreaM2 / 10000;
+            if (els.mapWorkedArea) els.mapWorkedArea.textContent = `${ha.toFixed(2)} ha`;
+          }
+        }
+      }
+
+      this.lastPos = pos;
+      if (this.autoCenter) {
+        this.cameraX = pos.x;
+        this.cameraZ = pos.z;
+      }
+
+      if (state.activeTab === 'map') {
+        this.render();
+      }
+    },
+
+    render() {
+      if (!this.ctx || !this.canvas) return;
+      const ctx = this.ctx;
+      const w = this.canvas.width;
+      const h = this.canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+
+      // Clear Canvas Background (Dark Tactical Grid)
+      ctx.fillStyle = '#0a1017';
+      ctx.fillRect(0, 0, w, h);
+
+      // Coordinate Grid Lines (every 50 meters)
+      const gridSizeM = 50;
+      const gridPx = gridSizeM * this.zoom;
+      const offsetX = ((cx - this.cameraX * this.zoom) % gridPx + gridPx) % gridPx;
+      const offsetY = ((cy + this.cameraZ * this.zoom) % gridPx + gridPx) % gridPx;
+
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      for (let x = offsetX; x < w; x += gridPx) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = offsetY; y < h; y += gridPx) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Convert world coordinate (x, z) to screen (px, py)
+      const toScreen = (wx, wz) => {
+        return {
+          x: cx + (wx - this.cameraX) * this.zoom,
+          y: cy - (wz - this.cameraZ) * this.zoom
+        };
+      };
+
+      // Draw Breadcrumb Swath Trail
+      if (this.trail.length > 1) {
+        for (let i = 1; i < this.trail.length; i++) {
+          const p1 = toScreen(this.trail[i - 1].x, this.trail[i - 1].z);
+          const p2 = toScreen(this.trail[i].x, this.trail[i].z);
+
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          if (this.trail[i].isWorking) {
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.65)'; // Green working swath
+            ctx.lineWidth = Math.max(3, 9 * this.zoom * 0.4);
+          } else {
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)'; // Amber transit track
+            ctx.lineWidth = 2;
+          }
+          ctx.lineCap = 'round';
+          ctx.stroke();
+        }
+      }
+
+      // Draw Tractor Vehicle Marker & Heading
+      if (this.lastPos) {
+        const vScreen = toScreen(this.lastPos.x, this.lastPos.z);
+        const headingRad = (this.lastPos.heading * Math.PI) / 180;
+
+        ctx.save();
+        ctx.translate(vScreen.x, vScreen.y);
+        ctx.rotate(headingRad);
+
+        // Heading Direction Beam
+        const beamGrad = ctx.createLinearGradient(0, 0, 0, -60);
+        beamGrad.addColorStop(0, 'rgba(16, 185, 129, 0.8)');
+        beamGrad.addColorStop(1, 'rgba(16, 185, 129, 0)');
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-12, -55);
+        ctx.lineTo(12, -55);
+        ctx.closePath();
+        ctx.fillStyle = beamGrad;
+        ctx.fill();
+
+        // Implement Bar (trailing behind)
+        ctx.fillStyle = '#065f46';
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2;
+        ctx.fillRect(-18, 12, 36, 6);
+        ctx.strokeRect(-18, 12, 36, 6);
+
+        // Tractor Body
+        ctx.fillStyle = '#10b981';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(-8, -16, 16, 26, [4, 4, 2, 2]);
+        } else {
+          ctx.rect(-8, -16, 16, 26);
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        // Tractor Wheels
+        ctx.fillStyle = '#222';
+        ctx.fillRect(-11, -12, 4, 8); // Front left
+        ctx.fillRect(7, -12, 4, 8);  // Front right
+        ctx.fillRect(-12, 2, 5, 10);  // Rear left
+        ctx.fillRect(7, 2, 5, 10);   // Rear right
+
+        // Cabin Roof
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(0, -2, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+  };
+
   // Setup Event Listeners
   function setupEvents() {
     // Tab Switching
@@ -514,6 +886,13 @@
         });
         state.activeTab = tabId;
         playClickFeedback(true);
+
+        if (tabId === 'map') {
+          setTimeout(() => {
+            fieldMap.setupCanvasSize();
+            fieldMap.render();
+          }, 60);
+        }
       });
     });
 
@@ -641,6 +1020,9 @@
   // Initialization
   document.addEventListener('DOMContentLoaded', () => {
     setupEvents();
+    if (typeof fieldMap !== 'undefined' && fieldMap.init) {
+      fieldMap.init();
+    }
     initWebSocket();
   });
 })();

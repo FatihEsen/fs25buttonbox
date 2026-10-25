@@ -22,6 +22,13 @@ class DemoSimulator {
       toolLowered: true,
       ptoRunning: true,
       pipeOpen: false,
+      wipers: false,
+      belts: false,
+      cover: false,
+      aiActive: false,
+      posX: 124.5,
+      posZ: -340.2,
+      heading: 45,
       seedsLevel: 4200,
       seedsCap: 5500,
       money: 184500
@@ -60,6 +67,14 @@ class DemoSimulator {
     this.state.seedsLevel = Math.max(500, this.state.seedsLevel - 0.2);
     this.state.fuel = Math.max(10, this.state.fuel - 0.005);
 
+    // Simulate vehicle movement on map (in meters)
+    const dt = 0.04;
+    const speedMs = (currentSpeed * 1000) / 3600;
+    this.state.heading = (this.state.heading + Math.sin(this.t * 0.1) * 0.4 + 360) % 360;
+    const rad = (this.state.heading * Math.PI) / 180;
+    this.state.posX += Math.sin(rad) * speedMs * dt;
+    this.state.posZ += Math.cos(rad) * speedMs * dt;
+
     const telemetry = {
       protocol: "FSTEL_1.0",
       seq: Math.floor(this.t * 20),
@@ -81,6 +96,12 @@ class DemoSimulator {
         maxRpm: 2200,
         motorLoadPercent: parseFloat(currentLoad.toFixed(1)),
         operatingHours: this.state.hours,
+        position: {
+          x: parseFloat(this.state.posX.toFixed(1)),
+          y: 84.2,
+          z: parseFloat(this.state.posZ.toFixed(1)),
+          heading: Math.round(this.state.heading)
+        },
         cruiseControl: {
           isActive: true,
           targetSpeed: 15
@@ -156,7 +177,8 @@ class DemoSimulator {
         month: 4,
         temperature: 22,
         weather: "SUNNY",
-        money: this.state.money
+        money: this.state.money,
+        mapName: "Zielonka (FS25)"
       }
     };
 
@@ -167,9 +189,26 @@ class DemoSimulator {
 
   handleAction(actionName) {
     if (actionName === 'LIGHTS_BEACON') this.state.beacon = !this.state.beacon;
+    if (actionName === 'LIGHTS_HAZARD') this.state.turnSignal = (this.state.turnSignal === 3) ? 0 : 3;
+    if (actionName === 'LIGHTS_CYCLE') {
+      if (!this.state.highBeam && this.state.beacon) {
+        this.state.highBeam = true;
+      } else if (this.state.highBeam) {
+        this.state.highBeam = false;
+      } else {
+        this.state.highBeam = true;
+      }
+    }
+    if (actionName === 'LIGHTS_WORK_FRONT' || actionName === 'LIGHTS_WORK_BACK') {
+      this.state.workLights = !this.state.workLights;
+    }
     if (actionName === 'TOOL_LOWER' || actionName === 'TOOL_LOWER_ALL') this.state.toolLowered = !this.state.toolLowered;
     if (actionName === 'TOOL_PTO' || actionName === 'TOOL_PTO_ALL') this.state.ptoRunning = !this.state.ptoRunning;
     if (actionName === 'PIPE_TOGGLE') this.state.pipeOpen = !this.state.pipeOpen;
+    if (actionName === 'WIPERS_TOGGLE') this.state.wipers = !this.state.wipers;
+    if (actionName === 'TOGGLE_TENSION_BELTS') this.state.belts = !this.state.belts;
+    if (actionName === 'COVER_TOGGLE') this.state.cover = !this.state.cover;
+    if (actionName === 'AI_WORKER') this.state.aiActive = !this.state.aiActive;
   }
 }
 

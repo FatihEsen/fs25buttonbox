@@ -61,6 +61,9 @@
       <button id="tabButtonBox" class="tab-btn" data-tab="buttonbox">
         <span class="tab-icon">🕹️</span> BUTTON BOX
       </button>
+      <button id="tabMap" class="tab-btn" data-tab="map">
+        <span class="tab-icon">🗺️</span> MAP
+      </button>
     </div>
     
     <!-- Active Machine Name (Direct on tab row, no label) -->
@@ -237,9 +240,9 @@
                 <span class="ind-icon">🔒</span>
                 <span class="ind-label">DIFF LOCK</span>
               </div>
-              <div id="indHandbrake" class="indicator-pill tactile-btn" data-action="HANDBRAKE" title="Park El Freni">
-                <span class="ind-icon">🅿️</span>
-                <span class="ind-label">PARK BRAKE</span>
+              <div id="indBelts" class="indicator-pill tactile-btn" data-action="TOGGLE_TENSION_BELTS" title="Germe Kayışları (Tension Belts)">
+                <span class="ind-icon">🎗️</span>
+                <span class="ind-label">BELTS</span>
               </div>
             </div>
           </div>
@@ -280,10 +283,11 @@
                 <span class="btn-key">[2]</span>
               </button>
             </div>
-            <button class="tactile-btn matrix-btn" data-action="HANDBRAKE">
-              <span class="btn-icon">🅿️</span>
-              <span class="btn-name">PARKING BRAKE</span>
-              <span class="btn-key">[SPACE]</span>
+            <button class="tactile-btn matrix-btn btn-wipers" data-action="WIPERS_TOGGLE">
+              <div class="btn-led"></div>
+              <span class="btn-icon">🌧️</span>
+              <span class="btn-name">SİLECEKLER</span>
+              <span class="btn-key">[P]</span>
             </button>
           </div>
 
@@ -301,10 +305,11 @@
               <span class="btn-name">İŞÇİ ÇALIŞTIR (AI)</span>
               <span class="btn-key">[H]</span>
             </button>
-            <button class="tactile-btn matrix-btn" data-action="FRONT_HITCH">
-              <span class="btn-icon">📐</span>
-              <span class="btn-name">FRONT 3-PT HITCH</span>
-              <span class="btn-key">[NUM 7]</span>
+            <button class="tactile-btn matrix-btn btn-belts" data-action="TOGGLE_TENSION_BELTS">
+              <div class="btn-led"></div>
+              <span class="btn-icon">🎗️</span>
+              <span class="btn-name">GERME KAYIŞI</span>
+              <span class="btn-key">[L]</span>
             </button>
             <button class="tactile-btn matrix-btn" data-action="REAR_HITCH">
               <span class="btn-icon">🚜</span>
@@ -355,11 +360,11 @@
               <span class="btn-name">CYCLE ACTIVE TOOL</span>
               <span class="btn-key">[G]</span>
             </button>
-            <button class="tactile-btn matrix-btn btn-gps" data-action="GPS_TOGGLE">
+            <button class="tactile-btn matrix-btn btn-cover" data-action="COVER_TOGGLE">
               <div class="btn-led"></div>
-              <span class="btn-icon">🧭</span>
-              <span class="btn-name">GPS / GUIDANCE</span>
-              <span class="btn-key">[ALT + C]</span>
+              <span class="btn-icon">⛺</span>
+              <span class="btn-name">BRANDA / KAPAK</span>
+              <span class="btn-key">[N]</span>
             </button>
           </div>
 
@@ -393,6 +398,58 @@
               <span class="btn-name">HAZARDS / FLASHER</span>
               <span class="btn-key">[NUM 4]</span>
             </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: TACTICAL GPS & LIVE FIELD MAP -->
+    <section id="viewMap" class="view-panel">
+      <div class="map-container">
+        <!-- Top Map Header Cluster -->
+        <div class="map-header-cluster">
+          <div class="map-meta-left">
+            <span class="map-live-badge"><span class="live-dot"></span> GPS LIVE</span>
+            <span id="mapTitle" class="map-title-text">ZIELONKA (FS25)</span>
+          </div>
+
+          <div class="map-stats-cluster">
+            <div class="map-stat-pill" title="Mevcut Koordinat">
+              <span class="m-stat-label">POS</span>
+              <span id="mapPosCoord" class="m-stat-val">X: 124.5 | Z: -340.2</span>
+            </div>
+            <div class="map-stat-pill" title="Pusula Yönü">
+              <span class="m-stat-label">HEADING</span>
+              <span id="mapHeading" class="m-stat-val accent-green">045° NE</span>
+            </div>
+            <div class="map-stat-pill" title="İşlenen Alan">
+              <span class="m-stat-label">WORKED</span>
+              <span id="mapWorkedArea" class="m-stat-val accent-amber">0.00 ha</span>
+            </div>
+          </div>
+
+          <div class="map-actions-cluster">
+            <button id="btnMapCenter" class="map-ctrl-btn" title="Makineye Odaklan">🎯 MERKEZ</button>
+            <button id="btnMapZoomIn" class="map-ctrl-btn" title="Yakınlaş">➕</button>
+            <button id="btnMapZoomOut" class="map-ctrl-btn" title="Uzaklaş">➖</button>
+            <button id="btnMapClearTrail" class="map-ctrl-btn" title="İzleri Temizle">🧹 İZİ SİL</button>
+          </div>
+        </div>
+
+        <!-- Interactive Map Canvas Viewport -->
+        <div class="map-canvas-wrapper" id="mapCanvasWrapper">
+          <canvas id="fieldMapCanvas"></canvas>
+          <div class="map-crosshair"></div>
+          
+          <!-- Compass Rose Overlay -->
+          <div class="map-compass-hud">
+            <div class="compass-dial" id="compassDial">
+              <span class="compass-n">N</span>
+              <span class="compass-e">E</span>
+              <span class="compass-s">S</span>
+              <span class="compass-w">W</span>
+              <div class="compass-needle" id="compassNeedle"></div>
+            </div>
           </div>
         </div>
       </div>

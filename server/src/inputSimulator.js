@@ -30,8 +30,10 @@ class InputSimulator {
       'AI_WORKER': 'h',
       'TOGGLE_AI': 'h',
 
-      // GPS / Guidance Steering Mod
-      'GPS_TOGGLE': '%c' // Alt + C
+      // Utility & Mechanics
+      'TOGGLE_TENSION_BELTS': 'l',
+      'WIPERS_TOGGLE': 'p',
+      'COVER_TOGGLE': 'n'
     };
 
     this.lastTriggerTime = {};

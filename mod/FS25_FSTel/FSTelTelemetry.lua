@@ -253,27 +253,182 @@ function FSTelTelemetry:executeAction(actionName, vehicle)
             end
 
         elseif actionName == "LIGHTS_CYCLE" then
-            if vehicle.setLightsTypesMask ~= nil and vehicle.spec_lights ~= nil then
+            local done = false
+            if vehicle.actionEventToggleLights ~= nil then
+                local ok = pcall(function() vehicle:actionEventToggleLights(nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done and Lights ~= nil and Lights.actionEventToggleLights ~= nil then
+                local ok = pcall(function() Lights.actionEventToggleLights(vehicle, nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done and vehicle.setNextLightsState ~= nil then
+                local ok = pcall(function() vehicle:setNextLightsState() end)
+                if ok then done = true end
+            end
+            if not done and vehicle.spec_lights ~= nil and vehicle.setLightsTypesMask ~= nil then
                 local cur = vehicle.spec_lights.lightsTypesMask or 0
                 local nextMask = 0
                 if cur == 0 then nextMask = 1
-                elseif cur == 1 then nextMask = 3
-                elseif cur >= 3 then nextMask = 0 end
+                elseif cur == 1 then nextMask = 9
+                elseif cur == 9 then nextMask = 15
+                else nextMask = 0 end
                 vehicle:setLightsTypesMask(nextMask)
             end
 
         elseif actionName == "LIGHTS_WORK_FRONT" then
-            if vehicle.spec_lights ~= nil and vehicle.setLightsTypesMask ~= nil then
+            local done = false
+            if vehicle.actionEventToggleWorkLightFront ~= nil then
+                local ok = pcall(function() vehicle:actionEventToggleWorkLightFront(nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done and Lights ~= nil and Lights.actionEventToggleWorkLightFront ~= nil then
+                local ok = pcall(function() Lights.actionEventToggleWorkLightFront(vehicle, nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done and vehicle.spec_lights ~= nil and vehicle.setLightsTypesMask ~= nil then
+                local cur = vehicle.spec_lights.lightsTypesMask or 0
+                local nextMask = (safeBitAnd(cur, 2) ~= 0) and (cur - 2) or (cur + 2)
+                vehicle:setLightsTypesMask(nextMask)
+            end
+
+        elseif actionName == "LIGHTS_WORK_BACK" then
+            local done = false
+            if vehicle.actionEventToggleWorkLightBack ~= nil then
+                local ok = pcall(function() vehicle:actionEventToggleWorkLightBack(nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done and Lights ~= nil and Lights.actionEventToggleWorkLightBack ~= nil then
+                local ok = pcall(function() Lights.actionEventToggleWorkLightBack(vehicle, nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done and vehicle.spec_lights ~= nil and vehicle.setLightsTypesMask ~= nil then
                 local cur = vehicle.spec_lights.lightsTypesMask or 0
                 local nextMask = (safeBitAnd(cur, 4) ~= 0) and (cur - 4) or (cur + 4)
                 vehicle:setLightsTypesMask(nextMask)
             end
 
-        elseif actionName == "LIGHTS_WORK_BACK" then
-            if vehicle.spec_lights ~= nil and vehicle.setLightsTypesMask ~= nil then
-                local cur = vehicle.spec_lights.lightsTypesMask or 0
-                local nextMask = (safeBitAnd(cur, 8) ~= 0) and (cur - 8) or (cur + 8)
-                vehicle:setLightsTypesMask(nextMask)
+        elseif actionName == "TOOL_SELECT" then
+            local done = false
+            local root = vehicle.rootVehicle or vehicle
+            if root.selectNextSelectableImplement ~= nil then
+                local ok = pcall(function() root:selectNextSelectableImplement(1) end)
+                if ok then done = true end
+            end
+            if not done and vehicle.selectNextSelectableImplement ~= nil then
+                local ok = pcall(function() vehicle:selectNextSelectableImplement(1) end)
+                if ok then done = true end
+            end
+            if not done and AttacherJoints ~= nil and AttacherJoints.selectNextSelectableImplement ~= nil then
+                local ok = pcall(function() AttacherJoints.selectNextSelectableImplement(root, 1) end)
+                if ok then done = true end
+            end
+            if not done and vehicle.actionEventCycleImplement ~= nil then
+                local ok = pcall(function() vehicle:actionEventCycleImplement(nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done then
+                local list = (root.getAttachedImplements ~= nil and root:getAttachedImplements()) or (root.spec_attacherJoints and root.spec_attacherJoints.attachedImplements)
+                if list ~= nil and #list > 0 then
+                    local currentSel = (root.getSelectedImplement ~= nil and root:getSelectedImplement()) or (root.spec_attacherJoints and root.spec_attacherJoints.selectedImplement)
+                    local curIdx = 0
+                    for i, it in ipairs(list) do
+                        if it == currentSel or (it.object ~= nil and it.object == currentSel) then
+                            curIdx = i
+                            break
+                        end
+                    end
+                    local nextIdx = (curIdx % #list) + 1
+                    if root.setSelectedImplement ~= nil then
+                        pcall(function() root:setSelectedImplement(list[nextIdx]) end)
+                    elseif vehicle.setSelectedImplement ~= nil then
+                        pcall(function() vehicle:setSelectedImplement(list[nextIdx]) end)
+                    end
+                end
+            end
+
+        elseif actionName == "TOGGLE_TENSION_BELTS" then
+            local done = false
+            if vehicle.actionEventToggleTensionBelts ~= nil then
+                local ok = pcall(function() vehicle:actionEventToggleTensionBelts(nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done and TensionBelts ~= nil and TensionBelts.actionEventToggleTensionBelts ~= nil then
+                local ok = pcall(function() TensionBelts.actionEventToggleTensionBelts(vehicle, nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done then
+                local att = (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()) or {}
+                for _, it in ipairs(att) do
+                    local obj = it.object
+                    if obj ~= nil then
+                        if obj.actionEventToggleTensionBelts ~= nil then
+                            local ok = pcall(function() obj:actionEventToggleTensionBelts(nil, 1, nil, false) end)
+                            if ok then done = true break end
+                        end
+                        if obj.spec_tensionBelts ~= nil and obj.setAllTensionBeltsActive ~= nil then
+                            local anyActive = false
+                            if obj.spec_tensionBelts.hasBeltsActive ~= nil then anyActive = obj.spec_tensionBelts.hasBeltsActive end
+                            pcall(function() obj:setAllTensionBeltsActive(not anyActive) end)
+                            done = true
+                            break
+                        end
+                    end
+                end
+            end
+            if not done and vehicle.spec_tensionBelts ~= nil and vehicle.setAllTensionBeltsActive ~= nil then
+                local anyActive = false
+                if vehicle.spec_tensionBelts.hasBeltsActive ~= nil then anyActive = vehicle.spec_tensionBelts.hasBeltsActive end
+                pcall(function() vehicle:setAllTensionBeltsActive(not anyActive) end)
+            end
+
+        elseif actionName == "WIPERS_TOGGLE" then
+            local spec = vehicle.spec_wipers
+            if spec ~= nil then
+                if vehicle.setWipersState ~= nil then
+                    local cur = spec.wipersState or 0
+                    local nextState = (cur == 0) and 1 or 0
+                    pcall(function() vehicle:setWipersState(nextState) end)
+                elseif spec.wipers ~= nil then
+                    for _, wiper in ipairs(spec.wipers) do
+                        if wiper.state ~= nil then wiper.state = (wiper.state == 0) and 1 or 0 end
+                    end
+                end
+            end
+
+        elseif actionName == "COVER_TOGGLE" then
+            local done = false
+            if vehicle.actionEventToggleCover ~= nil then
+                local ok = pcall(function() vehicle:actionEventToggleCover(nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done and Cover ~= nil and Cover.actionEventToggleCover ~= nil then
+                local ok = pcall(function() Cover.actionEventToggleCover(vehicle, nil, 1, nil, false) end)
+                if ok then done = true end
+            end
+            if not done then
+                local att = (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()) or {}
+                for _, it in ipairs(att) do
+                    local obj = it.object
+                    if obj ~= nil then
+                        if obj.actionEventToggleCover ~= nil then
+                            local ok = pcall(function() obj:actionEventToggleCover(nil, 1, nil, false) end)
+                            if ok then done = true break end
+                        end
+                        if obj.setCoverState ~= nil and obj.spec_cover ~= nil then
+                            local cur = obj.spec_cover.state or 0
+                            local nextState = (cur == 0) and 1 or 0
+                            pcall(function() obj:setCoverState(nextState) end)
+                            done = true
+                            break
+                        end
+                    end
+                end
+            end
+            if not done and vehicle.setCoverState ~= nil and vehicle.spec_cover ~= nil then
+                local cur = vehicle.spec_cover.state or 0
+                local nextState = (cur == 0) and 1 or 0
+                pcall(function() vehicle:setCoverState(nextState) end)
             end
 
         elseif actionName == "TOOL_LOWER" then
@@ -589,6 +744,12 @@ function FSTelTelemetry:extractVehicleData(vehicle)
             capacity = 0,
             fillPercent = 0
         },
+        position = {
+            x = 0,
+            y = 0,
+            z = 0,
+            heading = 0
+        },
         lights = {
             beaconActive = false,
             turnLightState = 0,
@@ -617,6 +778,21 @@ function FSTelTelemetry:extractVehicleData(vehicle)
         if vehicle.getName ~= nil then
             local n = vehicle:getName()
             if n ~= nil then data.name = tostring(n) end
+        end
+
+        if vehicle.rootNode ~= nil and getWorldTranslation ~= nil then
+            local x, y, z = getWorldTranslation(vehicle.rootNode)
+            local dx, _, dz = 0, 0, 1
+            if localDirectionToWorld ~= nil then
+                dx, _, dz = localDirectionToWorld(vehicle.rootNode, 0, 0, 1)
+            end
+            local headingDeg = (math.deg(math.atan2(-dx, dz)) + 360) % 360
+            data.position = {
+                x = math.floor((x or 0) * 10) / 10,
+                y = math.floor((y or 0) * 10) / 10,
+                z = math.floor((z or 0) * 10) / 10,
+                heading = math.floor(headingDeg)
+            }
         end
 
         if vehicle.getLastSpeed ~= nil then
@@ -694,12 +870,16 @@ function FSTelTelemetry:extractVehicleData(vehicle)
         if specLights ~= nil then
             data.lights.beaconActive = specLights.beaconLightsActive and true or false
             data.lights.turnLightState = specLights.turnLightState or 0
-            data.lights.workLightsFront = specLights.workLightsFrontActive and true or false
-            data.lights.workLightsBack = specLights.workLightsBackActive and true or false
 
             if specLights.lightsTypesMask ~= nil then
-                data.lights.lowBeam = (safeBitAnd(specLights.lightsTypesMask, 1) ~= 0)
-                data.lights.highBeam = (safeBitAnd(specLights.lightsTypesMask, 2) ~= 0)
+                local mask = specLights.lightsTypesMask or 0
+                data.lights.lowBeam = (safeBitAnd(mask, 1) ~= 0)
+                data.lights.workLightsFront = (safeBitAnd(mask, 2) ~= 0) or (specLights.workLightsFrontActive and true or false)
+                data.lights.workLightsBack = (safeBitAnd(mask, 4) ~= 0) or (specLights.workLightsBackActive and true or false)
+                data.lights.highBeam = (safeBitAnd(mask, 8) ~= 0)
+            else
+                data.lights.workLightsFront = specLights.workLightsFrontActive and true or false
+                data.lights.workLightsBack = specLights.workLightsBackActive and true or false
             end
         end
 
@@ -790,11 +970,15 @@ function FSTelTelemetry:extractEnvironmentData()
         month = 1,
         temperature = 20,
         weather = "SUNNY",
-        money = 0
+        money = 0,
+        mapName = "Farming World"
     }
 
     pcall(function()
         if g_currentMission ~= nil then
+            if g_currentMission.missionInfo ~= nil and g_currentMission.missionInfo.mapTitle ~= nil then
+                env.mapName = tostring(g_currentMission.missionInfo.mapTitle)
+            end
             local missionEnv = g_currentMission.environment
             if missionEnv ~= nil then
                 if missionEnv.dayTime ~= nil then

@@ -1814,3 +1814,313 @@ body.terminal-body {
     gap: 4px !important;
   }
 }
+
+/* ==========================================================================
+   BUTTON STATE ENHANCEMENTS & LIGHTING COLORS
+   ========================================================================== */
+
+/* Headlights Dynamic Color States */
+.btn-lights.active-low-beam,
+[data-action="LIGHTS_CYCLE"].active-low-beam {
+  border-color: var(--accent-fendt-green) !important;
+  background: linear-gradient(180deg, #153324 0%, #0e2419 100%) !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.5) !important;
+}
+
+.btn-lights.active-low-beam .btn-led,
+[data-action="LIGHTS_CYCLE"].active-low-beam .btn-led {
+  background: var(--accent-fendt-green) !important;
+  box-shadow: 0 0 10px var(--accent-fendt-green) !important;
+}
+
+.btn-lights.active-high-beam,
+[data-action="LIGHTS_CYCLE"].active-high-beam {
+  border-color: #3b82f6 !important;
+  background: linear-gradient(180deg, #162b4a 0%, #0f1d33 100%) !important;
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.7) !important;
+}
+
+.btn-lights.active-high-beam .btn-led,
+[data-action="LIGHTS_CYCLE"].active-high-beam .btn-led {
+  background: #3b82f6 !important;
+  box-shadow: 0 0 12px #3b82f6 !important;
+}
+
+/* Hazards Blinking Button State */
+.active-hazard-flash,
+.btn-hazard.active-state,
+[data-action="LIGHTS_HAZARD"].active-state,
+#indHazard.active {
+  animation: hazard-button-flash 0.65s infinite alternate !important;
+}
+
+@keyframes hazard-button-flash {
+  0% {
+    border-color: #ef4444 !important;
+    background: #2a1111 !important;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4) !important;
+  }
+  100% {
+    border-color: #ff3b3b !important;
+    background: #541717 !important;
+    box-shadow: 0 0 22px rgba(239, 68, 68, 0.95) !important;
+  }
+}
+
+/* Front & Rear Work Lights States */
+[data-action="LIGHTS_WORK_FRONT"].active-state {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5) !important;
+  background: linear-gradient(180deg, #142a3b 0%, #0c1a26 100%) !important;
+}
+
+[data-action="LIGHTS_WORK_BACK"].active-state {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.5) !important;
+  background: linear-gradient(180deg, #332712 0%, #21190a 100%) !important;
+}
+
+/* Wipers, Tension Belts, Cover Buttons */
+.btn-wipers.active-state {
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4) !important;
+}
+.btn-wipers.active-state .btn-led {
+  background: #06b6d4 !important;
+  box-shadow: 0 0 8px #06b6d4 !important;
+}
+
+.btn-belts.active-state,
+#indBelts.active {
+  border-color: #a855f7 !important;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.5) !important;
+}
+.btn-belts.active-state .btn-led {
+  background: #a855f7 !important;
+  box-shadow: 0 0 8px #a855f7 !important;
+}
+
+.btn-cover.active-state {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4) !important;
+}
+.btn-cover.active-state .btn-led {
+  background: #f59e0b !important;
+  box-shadow: 0 0 8px #f59e0b !important;
+}
+
+/* ==========================================================================
+   VIEW 3: TACTICAL GPS & LIVE FIELD MAP
+   ========================================================================== */
+.map-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 10px;
+}
+
+.map-header-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 14px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.map-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.map-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-fendt-green);
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid var(--accent-fendt-green);
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.8px;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-fendt-green);
+  box-shadow: 0 0 6px var(--accent-fendt-green);
+  animation: beacon-strobe 1s infinite alternate;
+}
+
+.map-title-text {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.8px;
+}
+
+.map-stats-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.map-stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-inset);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+.m-stat-label {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.m-stat-val {
+  color: #fff;
+  font-weight: 700;
+}
+
+.map-actions-cluster {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-ctrl-btn {
+  background: linear-gradient(180deg, #243040 0%, #151e28 100%);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.1s ease;
+}
+
+.map-ctrl-btn:hover {
+  background: #2b394d;
+  border-color: var(--accent-fendt-green);
+  color: #fff;
+}
+
+.map-ctrl-btn:active {
+  transform: translateY(1px);
+}
+
+.map-canvas-wrapper {
+  flex: 1;
+  position: relative;
+  background: #090e14;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 380px;
+}
+
+#fieldMapCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.map-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.map-crosshair::before,
+.map-crosshair::after {
+  content: '';
+  position: absolute;
+  background: var(--accent-fendt-green);
+}
+
+.map-crosshair::before {
+  top: 11px;
+  left: 0;
+  width: 24px;
+  height: 2px;
+}
+
+.map-crosshair::after {
+  left: 11px;
+  top: 0;
+  width: 2px;
+  height: 24px;
+}
+
+.map-compass-hud {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  pointer-events: none;
+  background: rgba(14, 20, 28, 0.85);
+  border: 1px solid var(--border-subtle);
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.compass-dial {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.6rem;
+}
+
+.compass-n { position: absolute; top: 1px; color: #ef4444; }
+.compass-e { position: absolute; right: 3px; color: var(--text-dim); }
+.compass-s { position: absolute; bottom: 1px; color: var(--text-dim); }
+.compass-w { position: absolute; left: 3px; color: var(--text-dim); }
+
+.compass-needle {
+  width: 3px;
+  height: 24px;
+  background: linear-gradient(180deg, #ef4444 50%, #fff 50%);
+  border-radius: 2px;
+  transform-origin: center;
+  transition: transform 0.15s ease-out;
+}
