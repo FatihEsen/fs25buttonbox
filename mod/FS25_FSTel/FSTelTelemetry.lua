@@ -364,6 +364,34 @@ function FSTelTelemetry:executeAction(actionName, vehicle)
                 local isSet = (vehicle.getHandbrake ~= nil) and vehicle:getHandbrake() or false
                 vehicle:setHandbrake(not isSet)
             end
+
+        elseif actionName == "LIGHTS_HAZARD" then
+            if vehicle.setTurnLightState ~= nil and vehicle.spec_lights ~= nil then
+                local cur = vehicle.spec_lights.turnLightState or 0
+                vehicle:setTurnLightState((cur == 3) and 0 or 3)
+            end
+
+        elseif actionName == "FRONT_HITCH" or actionName == "REAR_HITCH" then
+            if vehicle.getAttachedImplements ~= nil then
+                local list = vehicle:getAttachedImplements()
+                for _, it in ipairs(list) do
+                    if it.object ~= nil and it.object.setLowered ~= nil then
+                        local isLowered = (it.object.getIsLowered ~= nil) and it.object:getIsLowered() or false
+                        it.object:setLowered(not isLowered)
+                        break
+                    end
+                end
+            end
+
+        elseif actionName == "DIFF_LOCK" then
+            if vehicle.spec_differential ~= nil and vehicle.spec_differential.setDiffState ~= nil then
+                vehicle.spec_differential:setDiffState(1, not vehicle.spec_differential.diffState1)
+            end
+
+        elseif actionName == "ALL_WHEEL_DRIVE" then
+            if vehicle.spec_allWheelDrive ~= nil and vehicle.spec_allWheelDrive.setAwdState ~= nil then
+                vehicle.spec_allWheelDrive:setAwdState(not vehicle.spec_allWheelDrive.awdActive)
+            end
         end
     end)
 end

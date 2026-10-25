@@ -513,29 +513,60 @@
       });
     });
 
-    // Tactile Buttons Touch & Click Binding
+    // Tactile Buttons Touch & Click Binding (Smooth Mobile Scrolling Friendly)
     const tactileButtons = document.querySelectorAll('.tactile-btn');
     tactileButtons.forEach((btn) => {
       const action = btn.getAttribute('data-action');
       if (!action) return;
 
-      const onPress = (e) => {
-        e.preventDefault();
+      // Desktop Mouse Clicks
+      btn.addEventListener('mousedown', (e) => {
         btn.classList.add('pressed');
         dispatchAction(action);
-      };
+      });
 
-      const onRelease = () => {
+      const onMouseUp = () => {
         btn.classList.remove('pressed');
       };
+      btn.addEventListener('mouseup', onMouseUp);
+      btn.addEventListener('mouseleave', onMouseUp);
 
-      btn.addEventListener('mousedown', onPress);
-      btn.addEventListener('mouseup', onRelease);
-      btn.addEventListener('mouseleave', onRelease);
+      // Mobile Touch: Allows scrolling without accidental triggers
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let isTouchScrolling = false;
 
-      btn.addEventListener('touchstart', onPress, { passive: false });
-      btn.addEventListener('touchend', onRelease);
-      btn.addEventListener('touchcancel', onRelease);
+      btn.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isTouchScrolling = false;
+        btn.classList.add('pressed');
+      }, { passive: true });
+
+      btn.addEventListener('touchmove', (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+        const deltaX = Math.abs(e.touches[0].clientX - touchStartX);
+        const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
+        // If finger moves more than 8 pixels, user is scrolling the page
+        if (deltaX > 8 || deltaY > 8) {
+          isTouchScrolling = true;
+          btn.classList.remove('pressed');
+        }
+      }, { passive: true });
+
+      btn.addEventListener('touchend', (e) => {
+        btn.classList.remove('pressed');
+        if (!isTouchScrolling) {
+          // Genuine tap: trigger action
+          dispatchAction(action);
+        }
+      });
+
+      btn.addEventListener('touchcancel', () => {
+        btn.classList.remove('pressed');
+        isTouchScrolling = true;
+      });
     });
 
     // Speed Unit Toggle

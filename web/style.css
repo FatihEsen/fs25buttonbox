@@ -410,13 +410,37 @@ body.terminal-body {
   overflow-y: auto;
 }
 
-/* Left Column: Tractor Telemetry */
-.speed-card {
-  text-align: center;
+/* Dual Cockpit Main Card & 2-Column Split */
+.cockpit-main-card {
+  padding: 10px;
+}
+
+.cockpit-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.cockpit-col-speed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.cockpit-col-speed .mini-header {
+  width: 100%;
+  margin-bottom: 2px;
+  padding-bottom: 4px;
 }
 
 .unit-toggle-btn {
-  background: var(--bg-inset);
+  background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
   color: var(--accent-fendt-green);
   font-family: var(--font-mono);
@@ -437,13 +461,13 @@ body.terminal-body {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 4px 0;
+  margin: 2px 0;
 }
 
 .speed-gauge-wrap {
   position: relative;
-  width: 220px;
-  height: 130px;
+  width: 180px;
+  height: 110px;
 }
 
 .speed-arc-svg {
@@ -460,7 +484,6 @@ body.terminal-body {
 
 .arc-fg {
   fill: none;
-  stroke: url(#speedGradient);
   stroke: var(--accent-fendt-green);
   stroke-width: 12;
   stroke-linecap: round;
@@ -477,12 +500,12 @@ body.terminal-body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 25px;
+  padding-top: 20px;
 }
 
 .speed-num {
   font-family: var(--font-display);
-  font-size: 3.2rem;
+  font-size: 2.8rem;
   font-weight: 700;
   line-height: 1;
   color: #fff;
@@ -491,43 +514,115 @@ body.terminal-body {
 
 .speed-unit-label {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--text-muted);
   letter-spacing: 1px;
 }
 
-.sub-drivetrain-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+/* RPM & LOAD DIRECTLY UNDER SPEED ARC */
+.under-arc-meters {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.info-pill {
+.micro-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.micro-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.micro-title {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.6px;
+}
+
+.micro-num {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.micro-track {
+  height: 8px !important;
+  border-radius: 3px;
+}
+
+/* RIGHT COLUMN: VERTICALLY STACKED VITALS */
+.cockpit-col-vitals {
+  display: flex;
+  flex-direction: column;
+}
+
+.vitals-vertical-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  justify-content: space-between;
+}
+
+.vital-row-pill {
   background: var(--bg-inset);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
-  padding: 6px 4px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vital-fluid-pill {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px 10px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 4px;
 }
 
-.pill-label {
+.fluid-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.v-label {
   font-family: var(--font-display);
-  font-size: 0.6rem;
-  font-weight: 600;
+  font-size: 0.62rem;
+  font-weight: 700;
   color: var(--text-dim);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
 }
 
-.pill-value {
+.v-val {
   font-family: var(--font-mono);
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
-  margin-top: 2px;
+}
+
+.v-val-sm {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
 }
 
 .accent-green {
@@ -1020,6 +1115,9 @@ body.terminal-body {
   justify-content: center;
   text-align: center;
   cursor: pointer;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
   box-shadow: 
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     inset 0 -2px 0 rgba(0, 0, 0, 0.4),
@@ -1134,14 +1232,14 @@ body.terminal-body {
 }
 
 /* ==========================================================================
-   7. VIEW 2: FULLSCREEN BUTTON BOX 4X4 MATRIX
+   7. VIEW 2: FULLSCREEN BUTTON BOX 5-COLUMN MATRIX
    ========================================================================== */
 .matrix-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .matrix-header {
@@ -1164,8 +1262,8 @@ body.terminal-body {
 
 .matrix-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
 }
 
 .matrix-group {
@@ -1373,9 +1471,19 @@ body.terminal-body {
 /* ==========================================================================
    10. RESPONSIVE DESIGN (TABLETS & PHONES)
    ========================================================================== */
-@media (max-width: 1100px) {
+@media (min-width: 1200px) {
   .dashboard-grid {
-    grid-template-columns: 280px 1fr 280px;
+    grid-template-columns: 370px 1fr 340px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: 340px 1fr 320px;
+  }
+
+  .matrix-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -1392,22 +1500,44 @@ body.terminal-body {
   .view-panel {
     position: static;
     overflow-y: visible;
+    padding: 8px;
   }
 
   .dashboard-grid {
     grid-template-columns: 1fr;
     height: auto;
+    gap: 10px;
+  }
+
+  .cockpit-2col {
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 8px;
+  }
+
+  .speed-gauge-wrap {
+    width: 150px;
+    height: 95px;
+  }
+
+  .speed-num {
+    font-size: 2.3rem;
   }
 
   .matrix-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .matrix-btn {
+    min-height: 72px;
+    padding: 8px 4px;
   }
 
   .top-bar {
     flex-wrap: wrap;
     height: auto;
-    padding: 8px 12px;
-    gap: 8px;
+    padding: 6px 10px;
+    gap: 6px;
   }
 
   .vehicle-banner {
@@ -1417,7 +1547,21 @@ body.terminal-body {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 500px) {
+  .cockpit-2col {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .speed-gauge-wrap {
+    width: 130px;
+    height: 82px;
+  }
+
+  .speed-num {
+    font-size: 1.9rem;
+  }
+
   .matrix-grid {
     grid-template-columns: 1fr;
   }

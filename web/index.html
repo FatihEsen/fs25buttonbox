@@ -77,96 +77,99 @@
     <section id="viewDashboard" class="view-panel active-panel">
       <div class="dashboard-grid">
         
-        <!-- LEFT: TRACTOR TELEMETRY -->
+        <!-- LEFT: TRACTOR TELEMETRY (2-COLUMN DUAL COCKPIT LAYOUT) -->
         <div class="dash-column tractor-col">
-          <div class="panel-card speed-card">
-            <div class="card-header">
-              <span class="card-title">GROUND SPEED</span>
-              <button id="btnSpeedUnitToggle" class="unit-toggle-btn" title="Toggle KM/H / MPH">KM/H</button>
-            </div>
-            <div class="speed-display">
-              <div class="speed-gauge-wrap">
-                <svg class="speed-arc-svg" viewBox="0 0 200 120">
-                  <path class="arc-bg" d="M 20 110 A 80 80 0 0 1 180 110" />
-                  <path id="speedArcProgress" class="arc-fg" d="M 20 110 A 80 80 0 0 1 180 110" />
-                </svg>
-                <div class="speed-readout">
-                  <span id="speedValue" class="speed-num">15.0</span>
-                  <span id="speedUnit" class="speed-unit-label">KM/H</span>
+          <div class="panel-card cockpit-main-card">
+            <div class="cockpit-2col">
+              <!-- LEFT COLUMN: SPEED ARC + COMPACT RPM & LOAD DIRECTLY UNDER ARC -->
+              <div class="cockpit-col-speed">
+                <div class="card-header mini-header">
+                  <span class="card-title">GROUND SPEED</span>
+                  <button id="btnSpeedUnitToggle" class="unit-toggle-btn" title="Toggle KM/H / MPH">KM/H</button>
                 </div>
-              </div>
-            </div>
-
-            <!-- Gear & Cruise Target -->
-            <div class="sub-drivetrain-row">
-              <div class="info-pill">
-                <span class="pill-label">GEAR</span>
-                <span id="gearValue" class="pill-value accent-green">II</span>
-              </div>
-              <div class="info-pill">
-                <span class="pill-label">CRUISE</span>
-                <span id="cruiseTarget" class="pill-value accent-amber">15 KM/H</span>
-              </div>
-              <div class="info-pill">
-                <span class="pill-label">HOURS</span>
-                <span id="operatingHours" class="pill-value">124.6 h</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- RPM & MOTOR LOAD -->
-          <div class="panel-card engine-card">
-            <div class="card-header">
-              <span class="card-title">POWERTRAIN &amp; LOAD</span>
-            </div>
-            <div class="dual-bars-container">
-              <!-- RPM Bar -->
-              <div class="meter-group">
-                <div class="meter-meta">
-                  <span class="meter-title">ENGINE RPM</span>
-                  <span id="rpmValue" class="meter-num">1,550 RPM</span>
+                
+                <div class="speed-display">
+                  <div class="speed-gauge-wrap">
+                    <svg class="speed-arc-svg" viewBox="0 0 200 120">
+                      <path class="arc-bg" d="M 20 110 A 80 80 0 0 1 180 110" />
+                      <path id="speedArcProgress" class="arc-fg" d="M 20 110 A 80 80 0 0 1 180 110" />
+                    </svg>
+                    <div class="speed-readout">
+                      <span id="speedValue" class="speed-num">15.0</span>
+                      <span id="speedUnit" class="speed-unit-label">KM/H</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="bar-track">
-                  <div id="rpmBar" class="bar-fill rpm-fill" style="width: 70%;"></div>
-                  <div class="redline-marker" style="left: 88%;"></div>
+
+                <!-- RPM & MOTOR LOAD (Directly underneath the speed arc) -->
+                <div class="under-arc-meters">
+                  <!-- Engine RPM -->
+                  <div class="micro-meter">
+                    <div class="micro-meta">
+                      <span class="micro-title">RPM</span>
+                      <span id="rpmValue" class="micro-num">1,550</span>
+                    </div>
+                    <div class="bar-track micro-track">
+                      <div id="rpmBar" class="bar-fill rpm-fill" style="width: 70%;"></div>
+                      <div class="redline-marker" style="left: 88%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Motor Load -->
+                  <div class="micro-meter">
+                    <div class="micro-meta">
+                      <span class="micro-title">LOAD</span>
+                      <span id="loadValue" class="micro-num">64%</span>
+                    </div>
+                    <div class="bar-track micro-track">
+                      <div id="loadBar" class="bar-fill load-fill" style="width: 64%;"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Motor Load Bar -->
-              <div class="meter-group">
-                <div class="meter-meta">
-                  <span class="meter-title">ENGINE LOAD</span>
-                  <span id="loadValue" class="meter-num">64%</span>
-                </div>
-                <div class="bar-track">
-                  <div id="loadBar" class="bar-fill load-fill" style="width: 64%;"></div>
-                </div>
-              </div>
-            </div>
-          </div>
+              <!-- RIGHT COLUMN: VERTICALLY STACKED GEAR, CRUISE, HOURS, DIESEL, ADBLUE -->
+              <div class="cockpit-col-vitals">
+                <div class="vitals-vertical-stack">
+                  <!-- Gear -->
+                  <div class="vital-row-pill">
+                    <span class="v-label">GEAR</span>
+                    <span id="gearValue" class="v-val accent-green">II</span>
+                  </div>
 
-          <!-- FUEL & DEF / ADBLUE -->
-          <div class="panel-card fuel-card">
-            <div class="card-header">
-              <span class="card-title">FLUID CONSUMABLES</span>
-            </div>
-            <div class="fluid-grid">
-              <div class="fluid-item">
-                <div class="fluid-meta">
-                  <span class="fluid-name">⛽ DIESEL</span>
-                  <span id="fuelText" class="fluid-amount">385 / 500 L</span>
-                </div>
-                <div class="bar-track mini-track">
-                  <div id="fuelBar" class="bar-fill fuel-fill" style="width: 77%;"></div>
-                </div>
-              </div>
-              <div class="fluid-item">
-                <div class="fluid-meta">
-                  <span class="fluid-name">💧 DEF / ADBLUE</span>
-                  <span id="defText" class="fluid-amount">42 / 50 L</span>
-                </div>
-                <div class="bar-track mini-track">
-                  <div id="defBar" class="bar-fill def-fill" style="width: 84%;"></div>
+                  <!-- Cruise Target -->
+                  <div class="vital-row-pill">
+                    <span class="v-label">CRUISE</span>
+                    <span id="cruiseTarget" class="v-val accent-amber">15 KM/H</span>
+                  </div>
+
+                  <!-- Operating Hours -->
+                  <div class="vital-row-pill">
+                    <span class="v-label">HOURS</span>
+                    <span id="operatingHours" class="v-val">124.6 h</span>
+                  </div>
+
+                  <!-- Diesel Fuel -->
+                  <div class="vital-fluid-pill">
+                    <div class="fluid-top">
+                      <span class="v-label">⛽ DIESEL</span>
+                      <span id="fuelText" class="v-val-sm">385 / 500 L</span>
+                    </div>
+                    <div class="bar-track micro-track">
+                      <div id="fuelBar" class="bar-fill fuel-fill" style="width: 77%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- AdBlue / DEF -->
+                  <div class="vital-fluid-pill">
+                    <div class="fluid-top">
+                      <span class="v-label">💧 ADBLUE</span>
+                      <span id="defText" class="v-val-sm">42 / 50 L</span>
+                    </div>
+                    <div class="bar-track micro-track">
+                      <div id="defBar" class="bar-fill def-fill" style="width: 84%;"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -400,18 +403,18 @@
       </div>
     </section>
 
-    <!-- VIEW 2: FULLSCREEN BUTTON BOX MATRIX -->
+    <!-- VIEW 2: FULLSCREEN BUTTON BOX MATRIX (5 COLUMNS) -->
     <section id="viewButtonBox" class="view-panel">
       <div class="matrix-container">
         <div class="matrix-header">
-          <h2>HEAVY-DUTY VIRTUAL BUTTON BOX (4x4 ISOBUS MATRIX)</h2>
+          <h2>HEAVY-DUTY VIRTUAL BUTTON BOX (5-COLUMN ISOBUS MATRIX)</h2>
           <span class="matrix-desc">Designed for tablets, touchscreen secondary monitors, and zero-latency in-game control.</span>
         </div>
 
         <div class="matrix-grid">
-          <!-- Column 1: Engine & Drive -->
+          <!-- Column 1: Engine & Drivetrain -->
           <div class="matrix-group">
-            <span class="group-title">ENGINE &amp; DRIVETRAIN</span>
+            <span class="group-title">1. ENGINE &amp; CRUISE</span>
             <button class="tactile-btn matrix-btn btn-engine" data-action="ENGINE_START">
               <div class="btn-led"></div>
               <span class="btn-icon">⚡</span>
@@ -443,9 +446,9 @@
             </button>
           </div>
 
-          <!-- Column 2: Hydraulics & Power -->
+          <!-- Column 2: Hydraulics & Hitch -->
           <div class="matrix-group">
-            <span class="group-title">HYDRAULICS &amp; PTO</span>
+            <span class="group-title">2. HYDRAULICS &amp; HITCH</span>
             <button class="tactile-btn matrix-btn btn-hydraulics" data-action="TOOL_LOWER">
               <div class="btn-led"></div>
               <span class="btn-icon">↕️</span>
@@ -457,6 +460,21 @@
               <span class="btn-name">LIFT / LOWER ALL</span>
               <span class="btn-key">[CTRL + V]</span>
             </button>
+            <button class="tactile-btn matrix-btn" data-action="FRONT_HITCH">
+              <span class="btn-icon">📐</span>
+              <span class="btn-name">FRONT 3-PT HITCH</span>
+              <span class="btn-key">[NUM 7]</span>
+            </button>
+            <button class="tactile-btn matrix-btn" data-action="REAR_HITCH">
+              <span class="btn-icon">🚜</span>
+              <span class="btn-name">REAR 3-PT HITCH</span>
+              <span class="btn-key">[NUM 8]</span>
+            </button>
+          </div>
+
+          <!-- Column 3: PTO & Power System -->
+          <div class="matrix-group">
+            <span class="group-title">3. PTO &amp; POWER</span>
             <button class="tactile-btn matrix-btn btn-pto" data-action="TOOL_PTO">
               <div class="btn-led"></div>
               <span class="btn-icon">⟳</span>
@@ -468,11 +486,21 @@
               <span class="btn-name">PTO ALL TOOLS</span>
               <span class="btn-key">[CTRL + B]</span>
             </button>
+            <button class="tactile-btn matrix-btn" data-action="DIFF_LOCK">
+              <span class="btn-icon">🔒</span>
+              <span class="btn-name">DIFF LOCK</span>
+              <span class="btn-key">[NUM 1]</span>
+            </button>
+            <button class="tactile-btn matrix-btn" data-action="ALL_WHEEL_DRIVE">
+              <span class="btn-icon">⚙️</span>
+              <span class="btn-name">4WD ALL-WHEEL</span>
+              <span class="btn-key">[NUM 2]</span>
+            </button>
           </div>
 
-          <!-- Column 3: Implements & Unloading -->
+          <!-- Column 4: Implements & Mechanisms -->
           <div class="matrix-group">
-            <span class="group-title">IMPLEMENT MECHANISMS</span>
+            <span class="group-title">4. IMPLEMENT &amp; BOOM</span>
             <button class="tactile-btn matrix-btn btn-fold" data-action="TOOL_FOLD">
               <span class="btn-icon">⇋</span>
               <span class="btn-name">FOLD / UNFOLD</span>
@@ -496,9 +524,9 @@
             </button>
           </div>
 
-          <!-- Column 4: Lighting & Work Signals -->
+          <!-- Column 5: Lighting & Work Signals -->
           <div class="matrix-group">
-            <span class="group-title">LIGHTING &amp; SIGNALS</span>
+            <span class="group-title">5. LIGHTING &amp; SIGNALS</span>
             <button class="tactile-btn matrix-btn btn-beacon" data-action="LIGHTS_BEACON">
               <div class="btn-led pulse-led"></div>
               <span class="btn-icon">🚨</span>
@@ -510,15 +538,22 @@
               <span class="btn-name">LIGHTING MODES</span>
               <span class="btn-key">[F]</span>
             </button>
-            <button class="tactile-btn matrix-btn" data-action="LIGHTS_WORK_FRONT">
-              <span class="btn-icon">🔆</span>
-              <span class="btn-name">FRONT WORK LIGHTS</span>
-              <span class="btn-key">[NUM 5]</span>
-            </button>
-            <button class="tactile-btn matrix-btn" data-action="LIGHTS_WORK_BACK">
-              <span class="btn-icon">🔅</span>
-              <span class="btn-name">REAR WORK LIGHTS</span>
-              <span class="btn-key">[NUM 6]</span>
+            <div class="matrix-dual-row">
+              <button class="tactile-btn matrix-btn" data-action="LIGHTS_WORK_FRONT">
+                <span class="btn-icon">🔆</span>
+                <span class="btn-name">FRONT WORK</span>
+                <span class="btn-key">[5]</span>
+              </button>
+              <button class="tactile-btn matrix-btn" data-action="LIGHTS_WORK_BACK">
+                <span class="btn-icon">🔅</span>
+                <span class="btn-name">REAR WORK</span>
+                <span class="btn-key">[6]</span>
+              </button>
+            </div>
+            <button class="tactile-btn matrix-btn" data-action="LIGHTS_HAZARD">
+              <span class="btn-icon">⚠️</span>
+              <span class="btn-name">HAZARDS / FLASHER</span>
+              <span class="btn-key">[NUM 4]</span>
             </button>
           </div>
         </div>
