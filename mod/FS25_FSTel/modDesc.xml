@@ -15,9 +15,7 @@ Includes high-precision speed, RPM, engine load, fuel/AdBlue levels, hydraulics,
     <iconFilename>icon.png</iconFilename>
     <multiplayer supported="true"/>
 
-    <extraContent>
-        <scripts>
-            <script file="FSTelTelemetry.lua"/>
-        </scripts>
-    </extraContent>
+    <extraSourceFiles>
+        <sourceFile filename="FSTelTelemetry.lua"/>
+    </extraSourceFiles>
 </modDesc>
