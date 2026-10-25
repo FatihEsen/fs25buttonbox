@@ -849,6 +849,52 @@ body.terminal-body {
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
 }
 
+/* Swapped Controls Card on Right Column */
+.main-controls-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.controls-full-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  flex: 1;
+  align-content: stretch;
+}
+
+.controls-full-grid .indicator-pill {
+  min-height: 58px;
+  padding: 8px 6px;
+  cursor: pointer;
+  opacity: 0.65;
+  filter: grayscale(40%);
+  border-radius: 8px;
+}
+
+.controls-full-grid .indicator-pill:hover {
+  opacity: 0.9;
+  filter: grayscale(0%);
+  border-color: rgba(255, 255, 255, 0.25);
+  background: #1b2636;
+}
+
+.controls-full-grid .indicator-pill.active {
+  opacity: 1;
+  filter: grayscale(0%);
+}
+
+.controls-full-grid .indicator-pill .ind-icon {
+  font-size: 1.35rem;
+}
+
+.controls-full-grid .indicator-pill .ind-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.5px;
+}
+
 .indicator-pill.active .ind-label {
   color: #fff;
 }

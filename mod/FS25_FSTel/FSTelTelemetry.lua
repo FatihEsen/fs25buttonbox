@@ -325,10 +325,35 @@ function FSTelTelemetry:executeAction(actionName, vehicle)
             end
 
         elseif actionName == "TOOL_FOLD" then
-            local target = (vehicle.selectedImplement ~= nil and vehicle.selectedImplement.object) or (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()[1] and vehicle:getAttachedImplements()[1].object) or vehicle
-            if target ~= nil and target.setFoldState ~= nil and target.spec_foldable ~= nil then
-                local dir = target.spec_foldable.foldMoveDirection or 1
-                target:setFoldState(-dir, true)
+            local target = nil
+            if vehicle.selectedImplement ~= nil and vehicle.selectedImplement.object ~= nil and vehicle.selectedImplement.object.spec_foldable ~= nil then
+                target = vehicle.selectedImplement.object
+            elseif vehicle.spec_foldable ~= nil then
+                target = vehicle
+            elseif vehicle.getAttachedImplements ~= nil then
+                for _, it in ipairs(vehicle:getAttachedImplements()) do
+                    if it.object ~= nil and it.object.spec_foldable ~= nil then
+                        target = it.object
+                        break
+                    end
+                end
+            end
+
+            if target ~= nil and target.spec_foldable ~= nil and target.setFoldState ~= nil then
+                local spec = target.spec_foldable
+                local foldDir = spec.foldMoveDirection or 0
+                if foldDir == 0 then
+                    local curTime = spec.foldAnimTime or 0
+                    local defaultDir = spec.turnOnFoldDirection or 1
+                    if curTime >= 0.5 then
+                        foldDir = (defaultDir == 1) and -1 or 1
+                    else
+                        foldDir = defaultDir
+                    end
+                else
+                    foldDir = -foldDir
+                end
+                target:setFoldState(foldDir, true)
             end
 
         elseif actionName == "PIPE_TOGGLE" then
@@ -661,10 +686,41 @@ function FSTelTelemetry:extractEnvironmentData()
                 end
             end
 
-            if g_farmManager ~= nil and g_currentMission.playerFarmId ~= nil then
-                local farm = g_farmManager:getFarmById(g_currentMission.playerFarmId)
-                if farm ~= nil and farm.money ~= nil then
-                    env.money = math.floor(farm.money)
+            local moneyFound = false
+            if g_currentMission.getMoney ~= nil then
+                local ok, m = pcall(function() return g_currentMission:getMoney() end)
+                if ok and m ~= nil and type(m) == "number" then
+                    env.money = math.floor(m)
+                    moneyFound = true
+                end
+            end
+
+            if not moneyFound and g_farmManager ~= nil then
+                local farmId = nil
+                if g_currentMission.getFarmId ~= nil then
+                    local ok, fid = pcall(function() return g_currentMission:getFarmId() end)
+                    if ok then farmId = fid end
+                end
+                if farmId == nil and g_currentMission.playerFarmId ~= nil then
+                    farmId = g_currentMission.playerFarmId
+                end
+                if farmId == nil and g_localPlayer ~= nil and g_localPlayer.farmId ~= nil then
+                    farmId = g_localPlayer.farmId
+                end
+                if farmId == nil and g_currentMission.player ~= nil and g_currentMission.player.farmId ~= nil then
+                    farmId = g_currentMission.player.farmId
+                end
+                if farmId == nil then farmId = 1 end
+
+                local farm = g_farmManager:getFarmById(farmId)
+                if farm ~= nil then
+                    if farm.getBalance ~= nil then
+                        local ok, bal = pcall(function() return farm:getBalance() end)
+                        if ok and bal ~= nil then env.money = math.floor(bal) moneyFound = true end
+                    end
+                    if not moneyFound and farm.money ~= nil then
+                        env.money = math.floor(farm.money)
+                    end
                 end
             end
         end
