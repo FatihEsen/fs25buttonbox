@@ -55,19 +55,16 @@
     </div>
   </header>
 
-  <!-- View Switcher Tabs -->
+  <!-- View Switcher Tabs (Shortened Titles) -->
   <nav class="tab-bar">
     <button id="tabDashboard" class="tab-btn active" data-tab="dashboard">
-      <span class="tab-icon">📊</span> DASHBOARD &amp; CONTROLS
+      <span class="tab-icon">📊</span> DASHBOARD
     </button>
     <button id="tabButtonBox" class="tab-btn" data-tab="buttonbox">
-      <span class="tab-icon">🕹️</span> FULL BUTTON BOX MATRIX
-    </button>
-    <button id="tabImplements" class="tab-btn" data-tab="implements">
-      <span class="tab-icon">🌾</span> IMPLEMENTS &amp; TANKS
+      <span class="tab-icon">🕹️</span> BUTTON BOX
     </button>
     <button id="tabSettings" class="tab-btn" data-tab="settings">
-      <span class="tab-icon">⚙️</span> SYSTEM &amp; DEMO
+      <span class="tab-icon">⚙️</span> SİSTEM
     </button>
   </nav>
 
@@ -83,8 +80,7 @@
             <div class="cockpit-2col">
               <!-- LEFT COLUMN: SPEED ARC + COMPACT RPM & LOAD DIRECTLY UNDER ARC -->
               <div class="cockpit-col-speed">
-                <div class="card-header mini-header">
-                  <span class="card-title">GROUND SPEED</span>
+                <div class="speed-header-bar">
                   <button id="btnSpeedUnitToggle" class="unit-toggle-btn" title="Toggle KM/H / MPH">KM/H</button>
                 </div>
                 
@@ -218,8 +214,7 @@
         <!-- CENTER: ISOBUS IMPLEMENT & TANK VIEW -->
         <div class="dash-column implement-col">
           <div class="panel-card active-tool-card">
-            <div class="card-header highlight-header">
-              <span class="card-title">PRIMARY IMPLEMENT (ACTIVE)</span>
+            <div class="card-header clean-tool-header">
               <span id="toolPositionBadge" class="badge badge-lowered">LOWERED</span>
             </div>
             
@@ -236,9 +231,6 @@
             </div>
 
             <!-- Dynamic Fill Units for Active Tool -->
-            <div class="card-subheader">
-              <span>ATTACHMENT STORAGE / TANKS</span>
-            </div>
             <div id="fillUnitsContainer" class="fill-units-list">
               <div class="fill-tank-card">
                 <div class="tank-meta">
@@ -271,11 +263,8 @@
             </div>
           </div>
 
-          <!-- Secondary Attached Implements -->
+          <!-- Secondary Attached Implements: 2-Column Grid -->
           <div class="panel-card secondary-tools-card">
-            <div class="card-header">
-              <span class="card-title">ALL ATTACHED EQUIPMENT SLOTS</span>
-            </div>
             <div id="implementSlotsList" class="implement-slots">
               <div class="slot-item slot-selected">
                 <span class="slot-badge">REAR</span>
@@ -287,6 +276,13 @@
                 <span class="slot-name">Weight 1500kg</span>
                 <span class="slot-action">ATTACHED</span>
               </div>
+            </div>
+          </div>
+
+          <!-- ALL ATTACHED IMPLEMENTS & TANKS (MOVED TO DASHBOARD) -->
+          <div class="panel-card all-implements-card">
+            <div id="fullImplementsGrid" class="full-implements-grid">
+              <!-- Filled dynamically by JavaScript -->
             </div>
           </div>
         </div>
@@ -560,15 +556,6 @@
       </div>
     </section>
 
-    <!-- VIEW 3: IMPLEMENTS & TANKS DEEP DIVE -->
-    <section id="viewImplements" class="view-panel">
-      <div class="implements-full-view">
-        <h2>ATTACHED IMPLEMENTS &amp; MATERIAL MONITOR</h2>
-        <div id="fullImplementsGrid" class="full-implements-grid">
-          <!-- Filled dynamically by JavaScript -->
-        </div>
-      </div>
-    </section>
 
     <!-- VIEW 4: SETTINGS & SYSTEM STATUS -->
     <section id="viewSettings" class="view-panel">

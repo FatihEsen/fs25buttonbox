@@ -433,10 +433,11 @@ body.terminal-body {
   padding: 8px;
 }
 
-.cockpit-col-speed .mini-header {
+.speed-header-bar {
   width: 100%;
+  display: flex;
+  justify-content: flex-end;
   margin-bottom: 2px;
-  padding-bottom: 4px;
 }
 
 .unit-toggle-btn {
@@ -1020,23 +1021,47 @@ body.terminal-body {
   color: var(--accent-fendt-green);
 }
 
-/* Secondary Attached Tools Slots */
-.implement-slots {
+/* Clean Tool Header (Without Primary Implement text) */
+.clean-tool-header {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  justify-content: flex-end;
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 4px;
+}
+
+/* Secondary Attached Tools Slots - 2-Column Grid */
+.implement-slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
 
 .slot-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
   background: var(--bg-inset);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 0.8rem;
+  padding: 8px 10px;
+  font-size: 0.78rem;
   transition: all 0.15s ease;
+  overflow: hidden;
+}
+
+/* All Implements & Tanks Embedded in Dashboard */
+.all-implements-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.all-implements-card .full-implements-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .slot-item.slot-selected {
@@ -1560,6 +1585,16 @@ body.terminal-body {
 
   .speed-num {
     font-size: 1.9rem;
+  }
+
+  .implement-slots {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .slot-item {
+    padding: 6px 6px;
+    font-size: 0.7rem;
   }
 
   .matrix-grid {

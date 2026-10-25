@@ -115,7 +115,6 @@
     viewPanels: {
       dashboard: document.getElementById('viewDashboard'),
       buttonbox: document.getElementById('viewButtonBox'),
-      implements: document.getElementById('viewImplements'),
       settings: document.getElementById('viewSettings')
     }
   };
