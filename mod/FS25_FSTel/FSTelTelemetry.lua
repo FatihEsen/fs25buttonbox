@@ -2,11 +2,11 @@
     FSTel - Telemetry & Virtual Button Box Exporter for Farming Simulator 25
     Compatible with GIANTS Engine 10 / FS25
 
-    High-speed, zero-dependency telemetry pipeline for FS25.
+    High-speed, bidirectional telemetry & control pipeline for FS25.
 ]]
 
 print("[FSTel] ========================================================")
-print("[FSTel] FSTel Telemetry Engine starting up...")
+print("[FSTel] FSTel Telemetry & Control Engine starting up...")
 print("[FSTel] Diagnostics:")
 print("[FSTel]   type(io) = " .. type(io))
 if type(io) == "table" then
@@ -29,7 +29,10 @@ FSTelTelemetry.UPDATE_INTERVAL_MS = math.floor(1000 / FSTelTelemetry.TARGET_HZ)
 
 FSTelTelemetry.lastSendTime = 0
 FSTelTelemetry.packetSeq = 0
-FSTelTelemetry.telemetryFilePath = nil
+FSTelTelemetry.lastActionSeq = 0
+FSTelTelemetry.jsonFilePath = nil
+FSTelTelemetry.actionFilePath = nil
+FSTelTelemetry.xmlFilePath = nil
 FSTelTelemetry.useIoOpen = false
 FSTelTelemetry.useXmlFallback = false
 FSTelTelemetry.hasLoggedSetup = false
@@ -136,6 +139,7 @@ function FSTelTelemetry:initTransport()
     end
 
     self.jsonFilePath = basePath .. "fstel_telemetry.json"
+    self.actionFilePath = basePath .. "fstel_action.json"
     self.xmlFilePath = basePath .. "fstel_telemetry.xml"
 
     if type(io) == "table" and type(io.open) == "function" then
@@ -144,7 +148,7 @@ function FSTelTelemetry:initTransport()
             testFile:write('{"status":"init"}\n')
             testFile:close()
             self.useIoOpen = true
-            print(string.format("[%s] High-speed JSON File IPC active: %s", self.MOD_NAME, self.jsonFilePath))
+            print(string.format("[%s] High-speed Bidirectional IPC active: %s", self.MOD_NAME, self.jsonFilePath))
             return
         end
     end
@@ -175,35 +179,215 @@ function FSTelTelemetry:getControlledVehicle()
         return nil
     end
 
-    -- 1. Standard FS19/FS22 controlledVehicle
     if g_currentMission.controlledVehicle ~= nil then
         return g_currentMission.controlledVehicle
     end
 
-    -- 2. FS22/FS25 g_localPlayer:getCurrentVehicle()
     if g_localPlayer ~= nil and type(g_localPlayer.getCurrentVehicle) == "function" then
         local ok, veh = pcall(function() return g_localPlayer:getCurrentVehicle() end)
         if ok and veh ~= nil then return veh end
     end
 
-    -- 3. FS25 g_currentMission.player:getCurrentVehicle()
     if g_currentMission.player ~= nil and type(g_currentMission.player.getCurrentVehicle) == "function" then
         local ok, veh = pcall(function() return g_currentMission.player:getCurrentVehicle() end)
         if ok and veh ~= nil then return veh end
     end
 
-    -- 4. FS25 g_currentMission.interactiveVehicle
     if g_currentMission.interactiveVehicle ~= nil then
         return g_currentMission.interactiveVehicle
     end
 
-    -- 5. FS25 vehicleSystem
     if g_currentMission.vehicleSystem ~= nil and type(g_currentMission.vehicleSystem.getControlledVehicle) == "function" then
         local ok, veh = pcall(function() return g_currentMission.vehicleSystem:getControlledVehicle() end)
         if ok and veh ~= nil then return veh end
     end
 
     return nil
+end
+
+-- =========================================================================
+-- In-Game Action Executor (Direct Vehicle Control)
+-- =========================================================================
+
+function FSTelTelemetry:executeAction(actionName, vehicle)
+    if vehicle == nil then return end
+
+    print(string.format("[%s] Executing in-game command: %s on %s", self.MOD_NAME, actionName, vehicle:getName() or "Machine"))
+
+    pcall(function()
+        if actionName == "ENGINE_START" then
+            if vehicle.getIsMotorStarted ~= nil and vehicle:getIsMotorStarted() then
+                if vehicle.stopMotor ~= nil then vehicle:stopMotor() end
+            else
+                if vehicle.startMotor ~= nil then vehicle:startMotor() end
+            end
+
+        elseif actionName == "CRUISE_TOGGLE" then
+            if vehicle.spec_drivable ~= nil and vehicle.spec_drivable.cruiseControl ~= nil then
+                local cur = vehicle.spec_drivable.cruiseControl.state or 0
+                local nextState = (cur == 1) and 0 or 1
+                if vehicle.setCruiseControlState ~= nil then
+                    vehicle:setCruiseControlState(nextState)
+                else
+                    vehicle.spec_drivable.cruiseControl.state = nextState
+                end
+            end
+
+        elseif actionName == "CRUISE_SPEED_UP" then
+            if vehicle.changeCruiseControlSpeed ~= nil then
+                vehicle:changeCruiseControlSpeed(1)
+            elseif vehicle.spec_drivable ~= nil and vehicle.spec_drivable.cruiseControl ~= nil then
+                vehicle.spec_drivable.cruiseControl.speed = (vehicle.spec_drivable.cruiseControl.speed or 15) + 1
+            end
+
+        elseif actionName == "CRUISE_SPEED_DOWN" then
+            if vehicle.changeCruiseControlSpeed ~= nil then
+                vehicle:changeCruiseControlSpeed(-1)
+            elseif vehicle.spec_drivable ~= nil and vehicle.spec_drivable.cruiseControl ~= nil then
+                vehicle.spec_drivable.cruiseControl.speed = math.max(1, (vehicle.spec_drivable.cruiseControl.speed or 15) - 1)
+            end
+
+        elseif actionName == "LIGHTS_BEACON" then
+            if vehicle.setBeaconLightsVisibility ~= nil and vehicle.spec_lights ~= nil then
+                vehicle:setBeaconLightsVisibility(not vehicle.spec_lights.beaconLightsActive)
+            end
+
+        elseif actionName == "LIGHTS_CYCLE" then
+            if vehicle.setLightsTypesMask ~= nil and vehicle.spec_lights ~= nil then
+                local cur = vehicle.spec_lights.lightsTypesMask or 0
+                local nextMask = 0
+                if cur == 0 then nextMask = 1
+                elseif cur == 1 then nextMask = 3
+                elseif cur >= 3 then nextMask = 0 end
+                vehicle:setLightsTypesMask(nextMask)
+            end
+
+        elseif actionName == "LIGHTS_WORK_FRONT" then
+            if vehicle.spec_lights ~= nil and vehicle.setLightsTypesMask ~= nil then
+                local cur = vehicle.spec_lights.lightsTypesMask or 0
+                local nextMask = (safeBitAnd(cur, 4) ~= 0) and (cur - 4) or (cur + 4)
+                vehicle:setLightsTypesMask(nextMask)
+            end
+
+        elseif actionName == "LIGHTS_WORK_BACK" then
+            if vehicle.spec_lights ~= nil and vehicle.setLightsTypesMask ~= nil then
+                local cur = vehicle.spec_lights.lightsTypesMask or 0
+                local nextMask = (safeBitAnd(cur, 8) ~= 0) and (cur - 8) or (cur + 8)
+                vehicle:setLightsTypesMask(nextMask)
+            end
+
+        elseif actionName == "TOOL_LOWER" then
+            local target = (vehicle.selectedImplement ~= nil and vehicle.selectedImplement.object) or (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()[1] and vehicle:getAttachedImplements()[1].object) or vehicle
+            if target ~= nil then
+                local isLowered = (target.getIsLowered ~= nil) and target:getIsLowered() or false
+                if target.setLowered ~= nil then
+                    target:setLowered(not isLowered)
+                elseif vehicle.setLowered ~= nil then
+                    vehicle:setLowered(not isLowered)
+                end
+            end
+
+        elseif actionName == "TOOL_LOWER_ALL" then
+            if vehicle.setAllLowered ~= nil then
+                local anyLowered = false
+                if vehicle.getAttachedImplements ~= nil then
+                    for _, it in ipairs(vehicle:getAttachedImplements()) do
+                        if it.object ~= nil and it.object.getIsLowered ~= nil and it.object:getIsLowered() then
+                            anyLowered = true
+                            break
+                        end
+                    end
+                end
+                vehicle:setAllLowered(not anyLowered)
+            end
+
+        elseif actionName == "TOOL_PTO" then
+            local target = (vehicle.selectedImplement ~= nil and vehicle.selectedImplement.object) or (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()[1] and vehicle:getAttachedImplements()[1].object)
+            if target ~= nil and target.setIsTurnedOn ~= nil then
+                local isTurnedOn = (target.getIsTurnedOn ~= nil) and target:getIsTurnedOn() or false
+                target:setIsTurnedOn(not isTurnedOn)
+            end
+
+        elseif actionName == "TOOL_PTO_ALL" then
+            if vehicle.getAttachedImplements ~= nil then
+                local anyOn = false
+                for _, it in ipairs(vehicle:getAttachedImplements()) do
+                    if it.object ~= nil and it.object.getIsTurnedOn ~= nil and it.object:getIsTurnedOn() then
+                        anyOn = true
+                        break
+                    end
+                end
+                for _, it in ipairs(vehicle:getAttachedImplements()) do
+                    if it.object ~= nil and it.object.setIsTurnedOn ~= nil then
+                        it.object:setIsTurnedOn(not anyOn)
+                    end
+                end
+            end
+
+        elseif actionName == "TOOL_FOLD" then
+            local target = (vehicle.selectedImplement ~= nil and vehicle.selectedImplement.object) or (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()[1] and vehicle:getAttachedImplements()[1].object) or vehicle
+            if target ~= nil and target.setFoldState ~= nil and target.spec_foldable ~= nil then
+                local dir = target.spec_foldable.foldMoveDirection or 1
+                target:setFoldState(-dir, true)
+            end
+
+        elseif actionName == "PIPE_TOGGLE" then
+            local target = vehicle
+            if vehicle.spec_pipe == nil and vehicle.getAttachedImplements ~= nil then
+                for _, it in ipairs(vehicle:getAttachedImplements()) do
+                    if it.object ~= nil and it.object.spec_pipe ~= nil then
+                        target = it.object
+                        break
+                    end
+                end
+            end
+            if target ~= nil and target.spec_pipe ~= nil and target.setPipeState ~= nil then
+                local cur = target.spec_pipe.currentState or 1
+                target:setPipeState((cur == 1) and 2 or 1)
+            end
+
+        elseif actionName == "TOOL_SELECT" then
+            if vehicle.setSelectedImplement ~= nil and vehicle.getAttachedImplements ~= nil then
+                local list = vehicle:getAttachedImplements()
+                if #list > 0 then
+                    local curIdx = 1
+                    for i, it in ipairs(list) do
+                        if it == vehicle.selectedImplement then curIdx = i break end
+                    end
+                    local nextIdx = (curIdx % #list) + 1
+                    vehicle:setSelectedImplement(list[nextIdx])
+                end
+            end
+
+        elseif actionName == "HANDBRAKE" then
+            if vehicle.setHandbrake ~= nil then
+                local isSet = (vehicle.getHandbrake ~= nil) and vehicle:getHandbrake() or false
+                vehicle:setHandbrake(not isSet)
+            end
+        end
+    end)
+end
+
+function FSTelTelemetry:processIncomingActions(vehicle)
+    if self.actionFilePath == nil or not self.useIoOpen then return end
+
+    pcall(function()
+        local f = io.open(self.actionFilePath, "r")
+        if f ~= nil then
+            local content = f:read("*a")
+            f:close()
+
+            if content ~= nil and #content > 5 then
+                local seq = tonumber(content:match('"seq":%s*(%d+)')) or 0
+                local action = content:match('"action":%s*"([^"]+)"')
+
+                if seq > 0 and seq ~= self.lastActionSeq and action ~= nil then
+                    self.lastActionSeq = seq
+                    self:executeAction(action, vehicle)
+                end
+            end
+        end
+    end)
 end
 
 -- =========================================================================
@@ -472,23 +656,26 @@ function FSTelTelemetry:safeUpdate(dt)
         self:initTransport()
     end
 
+    if g_currentMission == nil then
+        return
+    end
+
+    local vehicle = self:getControlledVehicle()
+
+    -- Process any incoming button commands from Web Terminal
+    self:processIncomingActions(vehicle)
+
     local currentTime = g_time or 0
     if (currentTime - self.lastSendTime) < self.UPDATE_INTERVAL_MS then
         return
     end
     self.lastSendTime = currentTime
 
-    if g_currentMission == nil then
-        return
-    end
-
-    local vehicle = self:getControlledVehicle()
     local vehData = nil
 
     if vehicle ~= nil then
         vehData = self:extractVehicleData(vehicle)
     else
-        -- Active on foot
         vehData = {
             id = 0,
             name = "On Foot (No Vehicle)",
@@ -532,7 +719,7 @@ function FSTelTelemetry:safeUpdate(dt)
             f:write(jsonStr)
             f:close()
             if not self.hasLoggedFirstWrite then
-                print(string.format("[%s] Successfully writing telemetry packets to disk! (Seq #%d)", self.MOD_NAME, self.packetSeq))
+                print(string.format("[%s] Successfully streaming in-game telemetry! (Seq #%d)", self.MOD_NAME, self.packetSeq))
                 self.hasLoggedFirstWrite = true
             end
         end
@@ -542,10 +729,6 @@ function FSTelTelemetry:safeUpdate(dt)
             setXMLString(xmlFile, "fstel#payload", jsonStr)
             saveXMLFile(xmlFile)
             delete(xmlFile)
-            if not self.hasLoggedFirstWrite then
-                print(string.format("[%s] Successfully writing XML telemetry to disk! (Seq #%d)", self.MOD_NAME, self.packetSeq))
-                self.hasLoggedFirstWrite = true
-            end
         end
     end
 end

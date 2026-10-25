@@ -1,6 +1,7 @@
 const http = require('http');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 const express = require('express');
 const UdpTelemetryListener = require('./udpTelemetryListener');
 const FileTelemetryListener = require('./fileTelemetryListener');
@@ -29,10 +30,28 @@ const inputSimulator = new InputSimulator();
 let latestData = null;
 let useDemoFallback = true; // Auto demo when FS25 is not actively streaming
 
+// Action file dispatching directly to FS25 Mod in-game
+const actionFilePaths = [
+  'D:/Documents/My Games/FarmingSimulator2025/fstel_action.json',
+  path.join(os.homedir(), 'Documents/My Games/FarmingSimulator2025/fstel_action.json')
+];
+
+let actionSeq = 0;
+function dispatchGameAction(actionName) {
+  actionSeq++;
+  const payload = JSON.stringify({ seq: actionSeq, action: actionName, time: Date.now() });
+  for (const p of actionFilePaths) {
+    try {
+      fs.writeFileSync(p, payload, 'utf8');
+    } catch (e) {}
+  }
+}
+
 const wsHub = new WebSocketServerHub({
   port: WS_PORT,
   onClientAction: (action, raw) => {
     console.log(`[Main] Button Box Action received: ${action}`);
+    dispatchGameAction(action);
     inputSimulator.triggerAction(action);
     if (useDemoFallback && demoSim) {
       demoSim.handleAction(action);
@@ -102,6 +121,7 @@ app.get('/api/status', (req, res) => {
 app.post('/api/action', (req, res) => {
   const { action } = req.body;
   if (!action) return res.status(400).json({ error: 'Missing action parameter' });
+  dispatchGameAction(action);
   const executed = inputSimulator.triggerAction(action);
   if (useDemoFallback && demoSim) {
     demoSim.handleAction(action);
