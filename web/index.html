@@ -24,12 +24,6 @@
       </div>
     </div>
 
-    <div class="vehicle-banner">
-      <span class="veh-label">ACTIVE MACHINE:</span>
-      <span id="vehicleName" class="veh-title">Fendt 942 Vario TMS</span>
-      <span id="vehicleCategory" class="veh-category">TRACTOR</span>
-    </div>
-
     <div class="environment-cluster">
       <div class="env-item" title="In-Game Clock">
         <span class="env-icon">🕒</span>
@@ -46,26 +40,34 @@
     </div>
 
     <div class="controls-group">
-      <button id="btnAudioToggle" class="icon-btn" title="Toggle Button Click Audio" aria-label="Audio">
+      <button id="btnAudioToggle" class="icon-btn" title="Ses Aç/Kapat" aria-label="Audio">
         <span class="icon">🔊</span>
       </button>
-      <button id="btnFullscreen" class="icon-btn" title="Toggle Fullscreen Mode" aria-label="Fullscreen">
+      <button id="tabSettings" class="icon-btn tab-btn" data-tab="settings" title="Sistem Ayarları" aria-label="Settings">
+        <span class="icon">⚙️</span>
+      </button>
+      <button id="btnFullscreen" class="icon-btn" title="Tam Ekran" aria-label="Fullscreen">
         <span class="icon">⛶</span>
       </button>
     </div>
   </header>
 
-  <!-- View Switcher Tabs (Shortened Titles) -->
+  <!-- View Switcher Tabs & Active Machine Name Row -->
   <nav class="tab-bar">
-    <button id="tabDashboard" class="tab-btn active" data-tab="dashboard">
-      <span class="tab-icon">📊</span> DASHBOARD
-    </button>
-    <button id="tabButtonBox" class="tab-btn" data-tab="buttonbox">
-      <span class="tab-icon">🕹️</span> BUTTON BOX
-    </button>
-    <button id="tabSettings" class="tab-btn" data-tab="settings">
-      <span class="tab-icon">⚙️</span> SİSTEM
-    </button>
+    <div class="tab-nav-left">
+      <button id="tabDashboard" class="tab-btn active" data-tab="dashboard">
+        <span class="tab-icon">📊</span> DASHBOARD
+      </button>
+      <button id="tabButtonBox" class="tab-btn" data-tab="buttonbox">
+        <span class="tab-icon">🕹️</span> BUTTON BOX
+      </button>
+    </div>
+    
+    <!-- Active Machine Name (Direct on tab row, no label) -->
+    <div class="tab-veh-wrap">
+      <span id="vehicleName" class="active-machine-title">Fendt 942 Vario TMS</span>
+      <span id="vehicleCategory" class="veh-category-mini">TRACTOR</span>
+    </div>
   </nav>
 
   <!-- MAIN VIEWPORT -->
@@ -359,11 +361,6 @@
     <!-- VIEW 2: FULLSCREEN BUTTON BOX MATRIX (5 COLUMNS) -->
     <section id="viewButtonBox" class="view-panel">
       <div class="matrix-container">
-        <div class="matrix-header">
-          <h2>HEAVY-DUTY VIRTUAL BUTTON BOX (5-COLUMN ISOBUS MATRIX)</h2>
-          <span class="matrix-desc">Designed for tablets, touchscreen secondary monitors, and zero-latency in-game control.</span>
-        </div>
-
         <div class="matrix-grid">
           <!-- Column 1: Engine & Drivetrain -->
           <div class="matrix-group">
