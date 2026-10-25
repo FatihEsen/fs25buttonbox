@@ -241,6 +241,7 @@
     const speed = state.useMph ? (veh.speedMph || 0) : (veh.speedKmh || 0);
     if (els.speedValue) els.speedValue.textContent = speed.toFixed(1);
     if (els.speedUnit) els.speedUnit.textContent = state.useMph ? 'MPH' : 'KM/H';
+    if (els.btnSpeedUnitToggle) els.btnSpeedUnitToggle.textContent = state.useMph ? 'MPH' : 'KM/H';
 
     // SVG Speed Gauge Arc Calculation (Max speed ~65 km/h for gauge)
     if (els.speedArcProgress) {
@@ -381,6 +382,12 @@
     if (primaryTool) {
       if (els.activeToolName) els.activeToolName.textContent = primaryTool.name || 'Implement';
 
+      const toolSub = document.getElementById('activeToolSub');
+      if (toolSub) toolSub.textContent = primaryTool.typeName || 'Universal Implement';
+
+      const schematicTool = document.getElementById('schematicToolName');
+      if (schematicTool) schematicTool.textContent = `🌾 ${(primaryTool.name || 'IMPLEMENT').toUpperCase()}`;
+
       if (els.toolPositionBadge) {
         els.toolPositionBadge.textContent = primaryTool.isLowered ? 'LOWERED' : 'LIFTED';
         els.toolPositionBadge.className = `badge ${primaryTool.isLowered ? 'badge-lowered' : 'badge-lifted'}`;
@@ -407,47 +414,34 @@
       }
     } else {
       if (els.activeToolName) els.activeToolName.textContent = 'NO IMPLEMENT ATTACHED';
+      const toolSub = document.getElementById('activeToolSub');
+      if (toolSub) toolSub.textContent = 'Ready for connection';
       if (els.fillUnitsContainer) els.fillUnitsContainer.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem;padding:8px;">No material containers detected.</div>';
     }
 
-    // Equipment Slots Summary
+    // Unified Equipment Slots Bar (Interactive Sleek Pills)
     if (els.implementSlotsList) {
       els.implementSlotsList.innerHTML = '';
-      implementsList.forEach((tool, idx) => {
-        const slotEl = document.createElement('div');
-        slotEl.className = `slot-item ${tool.isSelected ? 'slot-selected' : ''}`;
-        slotEl.innerHTML = `
-          <span class="slot-badge">SLOT #${idx + 1}</span>
-          <span class="slot-name">${tool.name} ${tool.isSelected ? '(Active)' : ''}</span>
-          <span class="slot-action">${tool.isTurnedOn ? '⚡ RUNNING' : 'IDLE'}</span>
-        `;
-        els.implementSlotsList.appendChild(slotEl);
-      });
-    }
-
-    // Full Implements Tab Grid
-    if (els.fullImplementsGrid) {
-      els.fullImplementsGrid.innerHTML = '';
-      implementsList.forEach((tool, idx) => {
-        const card = document.createElement('div');
-        card.className = `implement-detail-card ${tool.isSelected ? 'active-implement' : ''}`;
-        card.innerHTML = `
-          <div class="card-header">
-            <span class="card-title">SLOT #${idx + 1} - ${tool.isSelected ? 'ACTIVE SELECTION' : 'ATTACHED'}</span>
-            <span class="badge ${tool.isLowered ? 'badge-lowered' : 'badge-lifted'}">${tool.isLowered ? 'LOWERED' : 'LIFTED'}</span>
-          </div>
-          <h3 style="font-family:var(--font-display);color:#fff;font-size:1.1rem;">${tool.name}</h3>
-          <div class="tool-status-badges" style="margin:4px 0;">
-            <span class="status-tag ${tool.isTurnedOn ? 'tag-pto-on' : ''}">${tool.isTurnedOn ? 'PTO ON' : 'PTO OFF'}</span>
-            <span class="status-tag ${!tool.isFolded ? 'tag-unfolded' : ''}">${tool.isFolded ? 'FOLDED' : 'UNFOLDED'}</span>
-          </div>
-          <div class="card-subheader"><span>STORAGE / MATERIAL LEVELS</span></div>
-          <div class="tanks-container" style="display:flex;flex-direction:column;gap:8px;"></div>
-        `;
-        const tanksWrap = card.querySelector('.tanks-container');
-        renderTanks(tanksWrap, tool.fillUnits || []);
-        els.fullImplementsGrid.appendChild(card);
-      });
+      if (implementsList.length === 0) {
+        els.implementSlotsList.innerHTML = '<div style="color:var(--text-dim);font-size:0.75rem;padding:4px 8px;">No implements attached</div>';
+      } else {
+        implementsList.forEach((tool, idx) => {
+          const pill = document.createElement('button');
+          pill.className = `slot-pill ${tool.isSelected ? 'slot-active' : ''}`;
+          pill.title = `Switch to ${tool.name} [G]`;
+          pill.innerHTML = `
+            <span class="slot-pill-badge">SLOT #${idx + 1}</span>
+            <div class="slot-pill-info">
+              <span class="slot-pill-name">${tool.name}</span>
+              <span class="slot-pill-status">${tool.isTurnedOn ? '⚡ RUNNING' : (tool.isSelected ? 'ACTIVE' : 'IDLE')}</span>
+            </div>
+          `;
+          pill.addEventListener('click', () => {
+            dispatchAction('TOOL_SELECT');
+          });
+          els.implementSlotsList.appendChild(pill);
+        });
+      }
     }
   }
 

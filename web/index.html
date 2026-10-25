@@ -80,10 +80,6 @@
             <div class="cockpit-2col">
               <!-- LEFT COLUMN: SPEED ARC + COMPACT RPM & LOAD DIRECTLY UNDER ARC -->
               <div class="cockpit-col-speed">
-                <div class="speed-header-bar">
-                  <button id="btnSpeedUnitToggle" class="unit-toggle-btn" title="Toggle KM/H / MPH">KM/H</button>
-                </div>
-                
                 <div class="speed-display">
                   <div class="speed-gauge-wrap">
                     <svg class="speed-arc-svg" viewBox="0 0 200 120">
@@ -92,7 +88,7 @@
                     </svg>
                     <div class="speed-readout">
                       <span id="speedValue" class="speed-num">15.0</span>
-                      <span id="speedUnit" class="speed-unit-label">KM/H</span>
+                      <button id="btnSpeedUnitToggle" class="unit-toggle-btn inside-arc-btn" title="Hız Birimi Değiştir (KM/H / MPH)">KM/H</button>
                     </div>
                   </div>
                 </div>
@@ -211,78 +207,39 @@
 
         </div>
 
-        <!-- CENTER: ISOBUS IMPLEMENT & TANK VIEW -->
+        <!-- CENTER: UNIFIED INTEGRATED ISOBUS IMPLEMENT & SLOTS CONSOLE -->
         <div class="dash-column implement-col">
-          <div class="panel-card active-tool-card">
-            <div class="card-header clean-tool-header">
-              <span id="toolPositionBadge" class="badge badge-lowered">LOWERED</span>
+          <div class="panel-card integrated-tool-card">
+            
+            <!-- Unified Attached Equipment Slots Bar (Integrated Header) -->
+            <div id="implementSlotsList" class="unified-slots-bar">
+              <!-- Rendered dynamically as sleek tabs/pills -->
             </div>
             
+            <!-- Active Tool Header & Badges -->
             <div class="tool-summary-row">
               <div class="tool-info-block">
                 <h3 id="activeToolName" class="tool-name">Horsch Pronto 9 DC</h3>
-                <span class="tool-sub">Universal Seeder &amp; Fertilizer Drill</span>
+                <span id="activeToolSub" class="tool-sub">Active Attached Implement</span>
               </div>
               <div class="tool-status-badges">
+                <span id="toolPositionBadge" class="badge badge-lowered">LOWERED</span>
                 <span id="toolPtoBadge" class="status-tag tag-pto-on">PTO: RUNNING</span>
                 <span id="toolFoldBadge" class="status-tag tag-unfolded">UNFOLDED</span>
                 <span id="toolPipeBadge" class="status-tag tag-pipe-closed">PIPE: RETRACTED</span>
               </div>
             </div>
 
-            <!-- Dynamic Fill Units for Active Tool -->
+            <!-- Dynamic Fill Units / Storage Tanks -->
             <div id="fillUnitsContainer" class="fill-units-list">
-              <div class="fill-tank-card">
-                <div class="tank-meta">
-                  <span class="tank-title">🌱 SEEDS</span>
-                  <span class="tank-percent">76.4%</span>
-                </div>
-                <div class="bar-track tank-track">
-                  <div class="bar-fill tank-fill-seeds" style="width: 76.4%;"></div>
-                </div>
-                <div class="tank-volume">4,200 / 5,500 L</div>
-              </div>
-
-              <div class="fill-tank-card">
-                <div class="tank-meta">
-                  <span class="tank-title">🧪 FERTILIZER</span>
-                  <span class="tank-percent">74.0%</span>
-                </div>
-                <div class="bar-track tank-track">
-                  <div class="bar-fill tank-fill-fert" style="width: 74%;"></div>
-                </div>
-                <div class="tank-volume">1,850 / 2,500 L</div>
-              </div>
+              <!-- Rendered dynamically -->
             </div>
 
             <!-- Visual Rig Graphic -->
             <div class="rig-schematic-wrap">
               <div class="schematic-tractor">🚜 TRACTOR</div>
               <div class="schematic-hitch">══ 3-POINT HITCH ══</div>
-              <div class="schematic-implement">🌾 SEEDER (ENGAGED)</div>
-            </div>
-          </div>
-
-          <!-- Secondary Attached Implements: 2-Column Grid -->
-          <div class="panel-card secondary-tools-card">
-            <div id="implementSlotsList" class="implement-slots">
-              <div class="slot-item slot-selected">
-                <span class="slot-badge">REAR</span>
-                <span class="slot-name">Horsch Pronto 9 DC (Active)</span>
-                <span class="slot-action">CONNECTED</span>
-              </div>
-              <div class="slot-item">
-                <span class="slot-badge">FRONT</span>
-                <span class="slot-name">Weight 1500kg</span>
-                <span class="slot-action">ATTACHED</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- ALL ATTACHED IMPLEMENTS & TANKS (MOVED TO DASHBOARD) -->
-          <div class="panel-card all-implements-card">
-            <div id="fullImplementsGrid" class="full-implements-grid">
-              <!-- Filled dynamically by JavaScript -->
+              <div class="schematic-implement" id="schematicToolName">🌾 SEEDER</div>
             </div>
           </div>
         </div>

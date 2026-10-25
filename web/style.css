@@ -468,7 +468,7 @@ body.terminal-body {
 .speed-gauge-wrap {
   position: relative;
   width: 180px;
-  height: 110px;
+  height: 120px;
 }
 
 .speed-arc-svg {
@@ -501,24 +501,38 @@ body.terminal-body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 20px;
+  padding-top: 36px;
+  gap: 2px;
 }
 
 .speed-num {
   font-family: var(--font-display);
-  font-size: 2.8rem;
+  font-size: 2.9rem;
   font-weight: 700;
-  line-height: 1;
+  line-height: 0.95;
   color: #fff;
   text-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+  margin-bottom: 2px;
 }
 
-.speed-unit-label {
+.inside-arc-btn {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid var(--accent-fendt-green);
+  color: var(--accent-fendt-green);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 1px;
+  padding: 2px 12px;
+  border-radius: 4px;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.inside-arc-btn:hover {
+  background: var(--accent-fendt-green);
+  color: #0b1118;
 }
 
 /* RPM & LOAD DIRECTLY UNDER SPEED ARC */
@@ -1021,62 +1035,91 @@ body.terminal-body {
   color: var(--accent-fendt-green);
 }
 
-/* Clean Tool Header (Without Primary Implement text) */
-.clean-tool-header {
+/* Unified Integrated ISOBUS Implement Console */
+.integrated-tool-card {
   display: flex;
-  justify-content: flex-end;
-  border-bottom: none !important;
-  padding-bottom: 0 !important;
-  margin-bottom: 4px;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* Secondary Attached Tools Slots - 2-Column Grid */
-.implement-slots {
+.unified-slots-bar {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
 }
 
-.slot-item {
+.slot-pill {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   background: var(--bg-inset);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 0.78rem;
+  padding: 7px 10px;
+  cursor: pointer;
   transition: all 0.15s ease;
   overflow: hidden;
+  text-align: left;
 }
 
-/* All Implements & Tanks Embedded in Dashboard */
-.all-implements-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.slot-pill:hover {
+  background: #1b2636;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.all-implements-card .full-implements-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.slot-item.slot-selected {
+.slot-pill.slot-active {
+  background: rgba(16, 185, 129, 0.12);
   border-color: var(--accent-fendt-green);
-  background: rgba(16, 185, 129, 0.08);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
 }
 
-.slot-badge {
+.slot-pill-badge {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 700;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 3px;
   background: #243040;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.slot-pill.slot-active .slot-pill-badge {
+  background: var(--accent-fendt-dark);
+  color: var(--accent-fendt-green);
+}
+
+.slot-pill-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.slot-pill-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.78rem;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.slot-pill-status {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.slot-pill.slot-active .slot-pill-status {
+  color: var(--accent-fendt-green);
 }
 
 .slot-name {
