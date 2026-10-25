@@ -205,6 +205,32 @@ function FSTelTelemetry:getControlledVehicle()
     return nil
 end
 
+local function triggerInputAction(veh, actionEnumName)
+    if veh == nil then return false end
+    local actionId = (InputAction ~= nil) and InputAction[actionEnumName]
+    local targets = { veh, veh.rootVehicle }
+    for _, v in ipairs(targets) do
+        if v ~= nil and v.actionEvents ~= nil then
+            if actionId ~= nil and v.actionEvents[actionId] ~= nil then
+                local ae = v.actionEvents[actionId]
+                if ae.callback ~= nil and ae.target ~= nil then
+                    local ok, err = pcall(function() ae.callback(ae.target, ae.actionName or actionEnumName, 1, nil, false) end)
+                    if ok then return true end
+                end
+            end
+            for _, ae in pairs(v.actionEvents) do
+                if ae.actionName == actionEnumName or (actionId ~= nil and (ae.actionIndex == actionId or ae.id == actionId)) then
+                    if ae.callback ~= nil and ae.target ~= nil then
+                        local ok, err = pcall(function() ae.callback(ae.target, ae.actionName or actionEnumName, 1, nil, false) end)
+                        if ok then return true end
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
+
 -- =========================================================================
 -- In-Game Action Executor (Direct Vehicle Control)
 -- =========================================================================
@@ -310,8 +336,14 @@ function FSTelTelemetry:executeAction(actionName, vehicle)
 
         elseif actionName == "TOOL_SELECT" then
             local done = false
+            -- 1. Native InputAction.SWITCH_IMPLEMENT
+            if triggerInputAction(vehicle, "SWITCH_IMPLEMENT") then
+                done = true
+            end
+
             local root = vehicle.rootVehicle or vehicle
-            if root.selectNextSelectableImplement ~= nil then
+            -- 2. Root vehicle selectNextSelectableImplement
+            if not done and root.selectNextSelectableImplement ~= nil then
                 local ok = pcall(function() root:selectNextSelectableImplement(1) end)
                 if ok then done = true end
             end
@@ -327,74 +359,112 @@ function FSTelTelemetry:executeAction(actionName, vehicle)
                 local ok = pcall(function() vehicle:actionEventCycleImplement(nil, 1, nil, false) end)
                 if ok then done = true end
             end
+
+            -- 3. Direct cycle through attached implements list
             if not done then
-                local list = (root.getAttachedImplements ~= nil and root:getAttachedImplements()) or (root.spec_attacherJoints and root.spec_attacherJoints.attachedImplements)
+                local spec = root.spec_attacherJoints or root.spec_attacherVehicles
+                local list = (root.getAttachedImplements ~= nil and root:getAttachedImplements()) or (spec and spec.attachedImplements)
                 if list ~= nil and #list > 0 then
-                    local currentSel = (root.getSelectedImplement ~= nil and root:getSelectedImplement()) or (root.spec_attacherJoints and root.spec_attacherJoints.selectedImplement)
+                    local currentSel = (root.getSelectedImplement ~= nil and root:getSelectedImplement()) or (spec and spec.selectedImplement)
                     local curIdx = 0
                     for i, it in ipairs(list) do
-                        if it == currentSel or (it.object ~= nil and it.object == currentSel) then
+                        if it == currentSel or (it.object ~= nil and (it.object == currentSel or it.object == (currentSel.object or currentSel))) then
                             curIdx = i
                             break
                         end
                     end
                     local nextIdx = (curIdx % #list) + 1
+                    local nextTarget = (curIdx == #list) and nil or list[nextIdx]
+
                     if root.setSelectedImplement ~= nil then
-                        pcall(function() root:setSelectedImplement(list[nextIdx]) end)
+                        pcall(function() root:setSelectedImplement(nextTarget) end)
+                        done = true
                     elseif vehicle.setSelectedImplement ~= nil then
-                        pcall(function() vehicle:setSelectedImplement(list[nextIdx]) end)
+                        pcall(function() vehicle:setSelectedImplement(nextTarget) end)
+                        done = true
+                    elseif spec ~= nil and spec.setSelectedImplement ~= nil then
+                        pcall(function() spec:setSelectedImplement(nextTarget) end)
+                        done = true
                     end
                 end
             end
+            print(string.format("[FS25_FSTel] TOOL_SELECT execution result: done=%s", tostring(done)))
 
         elseif actionName == "TOGGLE_TENSION_BELTS" then
             local done = false
-            if vehicle.actionEventToggleTensionBelts ~= nil then
-                local ok = pcall(function() vehicle:actionEventToggleTensionBelts(nil, 1, nil, false) end)
-                if ok then done = true end
+            if triggerInputAction(vehicle, "TOGGLE_TENSION_BELTS") then
+                done = true
             end
-            if not done and TensionBelts ~= nil and TensionBelts.actionEventToggleTensionBelts ~= nil then
-                local ok = pcall(function() TensionBelts.actionEventToggleTensionBelts(vehicle, nil, 1, nil, false) end)
-                if ok then done = true end
-            end
+
             if not done then
-                local att = (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()) or {}
+                local allVehs = { vehicle }
+                local att = (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()) or (vehicle.spec_attacherJoints and vehicle.spec_attacherJoints.attachedImplements) or {}
                 for _, it in ipairs(att) do
-                    local obj = it.object
-                    if obj ~= nil then
-                        if obj.actionEventToggleTensionBelts ~= nil then
-                            local ok = pcall(function() obj:actionEventToggleTensionBelts(nil, 1, nil, false) end)
-                            if ok then done = true break end
+                    local obj = it.object or it
+                    if obj ~= nil then table.insert(allVehs, obj) end
+                end
+
+                for _, obj in ipairs(allVehs) do
+                    local spec = obj.spec_tensionBelts
+                    if spec ~= nil then
+                        local anyActive = false
+                        if spec.areBeltsActive == true or spec.hasBeltsActive == true then
+                            anyActive = true
+                        elseif spec.tensionBelts ~= nil then
+                            for _, belt in ipairs(spec.tensionBelts) do
+                                if belt.isActive == true then
+                                    anyActive = true
+                                    break
+                                end
+                            end
                         end
-                        if obj.spec_tensionBelts ~= nil and obj.setAllTensionBeltsActive ~= nil then
-                            local anyActive = false
-                            if obj.spec_tensionBelts.hasBeltsActive ~= nil then anyActive = obj.spec_tensionBelts.hasBeltsActive end
-                            pcall(function() obj:setAllTensionBeltsActive(not anyActive) end)
+
+                        local targetState = not anyActive
+                        print(string.format("[FS25_FSTel] Tension belts toggle on %s: anyActive=%s -> targetState=%s", tostring(obj.typeName or "tool"), tostring(anyActive), tostring(targetState)))
+
+                        if obj.setAllTensionBeltsActive ~= nil then
+                            pcall(function() obj:setAllTensionBeltsActive(targetState) end)
+                            done = true
+                            break
+                        elseif spec.setAllTensionBeltsActive ~= nil then
+                            pcall(function() spec:setAllTensionBeltsActive(targetState) end)
                             done = true
                             break
                         end
                     end
                 end
             end
-            if not done and vehicle.spec_tensionBelts ~= nil and vehicle.setAllTensionBeltsActive ~= nil then
-                local anyActive = false
-                if vehicle.spec_tensionBelts.hasBeltsActive ~= nil then anyActive = vehicle.spec_tensionBelts.hasBeltsActive end
-                pcall(function() vehicle:setAllTensionBeltsActive(not anyActive) end)
-            end
 
-        elseif actionName == "WIPERS_TOGGLE" then
-            local spec = vehicle.spec_wipers
-            if spec ~= nil then
-                if vehicle.setWipersState ~= nil then
-                    local cur = spec.wipersState or 0
-                    local nextState = (cur == 0) and 1 or 0
-                    pcall(function() vehicle:setWipersState(nextState) end)
-                elseif spec.wipers ~= nil then
-                    for _, wiper in ipairs(spec.wipers) do
-                        if wiper.state ~= nil then wiper.state = (wiper.state == 0) and 1 or 0 end
+        elseif actionName == "TOGGLE_TIPSIDE" then
+            local done = false
+            if triggerInputAction(vehicle, "TOGGLE_TIPSIDE") then
+                done = true
+            end
+            if not done then
+                local allVehs = { vehicle }
+                local att = (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()) or (vehicle.spec_attacherJoints and vehicle.spec_attacherJoints.attachedImplements) or {}
+                for _, it in ipairs(att) do
+                    local obj = it.object or it
+                    if obj ~= nil then table.insert(allVehs, obj) end
+                end
+                for _, obj in ipairs(allVehs) do
+                    local spec = obj.spec_trailer
+                    if spec ~= nil then
+                        if obj.actionEventToggleTipSide ~= nil then
+                            local ok = pcall(function() obj:actionEventToggleTipSide(nil, 1, nil, false) end)
+                            if ok then done = true break end
+                        end
+                        if obj.setPreferedTipSide ~= nil and spec.tipSides ~= nil and #spec.tipSides > 1 then
+                            local curSide = spec.preferedTipSide or 1
+                            local nextSide = (curSide % #spec.tipSides) + 1
+                            pcall(function() obj:setPreferedTipSide(nextSide) end)
+                            done = true
+                            break
+                        end
                     end
                 end
             end
+            print(string.format("[FS25_FSTel] TOGGLE_TIPSIDE execution result: done=%s", tostring(done)))
 
         elseif actionName == "COVER_TOGGLE" then
             local done = false
@@ -588,38 +658,6 @@ function FSTelTelemetry:executeAction(actionName, vehicle)
             if target ~= nil and target.spec_pipe ~= nil and target.setPipeState ~= nil then
                 local cur = target.spec_pipe.currentState or 1
                 target:setPipeState((cur == 1) and 2 or 1)
-            end
-
-        elseif actionName == "TOOL_SELECT" then
-            local done = false
-            if vehicle.actionEventCycleImplement ~= nil then
-                local ok = pcall(function() vehicle:actionEventCycleImplement(nil, 1, nil, false) end)
-                if ok then done = true end
-            end
-            if not done and AttacherVehicles ~= nil and AttacherVehicles.actionEventCycleImplement ~= nil then
-                local ok = pcall(function() AttacherVehicles.actionEventCycleImplement(vehicle, nil, 1, nil, false) end)
-                if ok then done = true end
-            end
-
-            if not done then
-                local specAV = vehicle.spec_attacherVehicles
-                local list = (vehicle.getAttachedImplements ~= nil and vehicle:getAttachedImplements()) or (specAV and specAV.attachedImplements)
-                if list ~= nil and #list > 0 then
-                    local currentSel = (specAV and specAV.selectedImplement) or (vehicle.getSelectedImplement ~= nil and vehicle:getSelectedImplement())
-                    local curIdx = 0
-                    for i, it in ipairs(list) do
-                        if it == currentSel or (it.object ~= nil and it.object == currentSel) then
-                            curIdx = i
-                            break
-                        end
-                    end
-                    local nextIdx = (curIdx % #list) + 1
-                    if vehicle.setSelectedImplement ~= nil then
-                        pcall(function() vehicle:setSelectedImplement(list[nextIdx]) end)
-                    elseif specAV ~= nil and specAV.setSelectedImplement ~= nil then
-                        pcall(function() specAV:setSelectedImplement(list[nextIdx]) end)
-                    end
-                end
             end
 
         elseif actionName == "AI_WORKER" or actionName == "TOGGLE_AI" then
@@ -957,6 +995,31 @@ function FSTelTelemetry:extractVehicleData(vehicle)
                 end
             end
         end
+
+        -- Check tension belts on vehicle and attached implements
+        data.tensionBeltsActive = false
+        local allBeltVehs = { vehicle }
+        if vehicle.getAttachedImplements ~= nil then
+            for _, it in ipairs(vehicle:getAttachedImplements()) do
+                if it.object ~= nil then table.insert(allBeltVehs, it.object) end
+            end
+        end
+        for _, bObj in ipairs(allBeltVehs) do
+            local specTB = bObj.spec_tensionBelts
+            if specTB ~= nil then
+                if specTB.areBeltsActive == true or specTB.hasBeltsActive == true then
+                    data.tensionBeltsActive = true
+                    break
+                elseif specTB.tensionBelts ~= nil then
+                    for _, belt in ipairs(specTB.tensionBelts) do
+                        if belt.isActive == true then
+                            data.tensionBeltsActive = true
+                            break
+                        end
+                    end
+                end
+            end
+        end
     end)
 
     return data
@@ -971,13 +1034,30 @@ function FSTelTelemetry:extractEnvironmentData()
         temperature = 20,
         weather = "SUNNY",
         money = 0,
-        mapName = "Farming World"
+        mapName = "Riverbend Springs",
+        mapId = "mapUS",
+        mapSize = 2048
     }
 
     pcall(function()
         if g_currentMission ~= nil then
-            if g_currentMission.missionInfo ~= nil and g_currentMission.missionInfo.mapTitle ~= nil then
-                env.mapName = tostring(g_currentMission.missionInfo.mapTitle)
+            if g_currentMission.missionInfo ~= nil then
+                if g_currentMission.missionInfo.mapTitle ~= nil then
+                    env.mapName = tostring(g_currentMission.missionInfo.mapTitle)
+                end
+                if g_currentMission.missionInfo.mapId ~= nil then
+                    env.mapId = tostring(g_currentMission.missionInfo.mapId)
+                end
+            end
+            if env.mapId == nil or env.mapId == "" or env.mapId == "Farming World" then
+                local lower = (env.mapName or ""):lower()
+                if lower:match("zielonka") or lower:match("eu") then
+                    env.mapId = "mapEU"
+                elseif lower:match("pantai") or lower:match("as") then
+                    env.mapId = "mapAS"
+                else
+                    env.mapId = "mapUS"
+                end
             end
             local missionEnv = g_currentMission.environment
             if missionEnv ~= nil then

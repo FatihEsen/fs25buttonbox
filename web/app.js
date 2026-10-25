@@ -425,9 +425,9 @@
       el.classList.toggle('active-state', isAi);
     });
 
-    // Utility buttons (Wipers, Belts, Cover)
-    document.querySelectorAll('.btn-wipers, [data-action="WIPERS_TOGGLE"]').forEach(el => {
-      el.classList.toggle('active-state', !!veh.wipersActive);
+    // Utility buttons (Tip Side, Belts, Cover)
+    document.querySelectorAll('.btn-tipside, [data-action="TOGGLE_TIPSIDE"]').forEach(el => {
+      el.classList.toggle('active-state', false);
     });
     document.querySelectorAll('.btn-belts, [data-action="TOGGLE_TENSION_BELTS"]').forEach(el => {
       el.classList.toggle('active-state', !!veh.tensionBeltsActive);
@@ -571,11 +571,14 @@
   const fieldMap = {
     canvas: null,
     ctx: null,
+    mapImg: null,
+    mapImgLoaded: false,
+    currentMapId: null,
     trail: [],
     maxTrailPoints: 1200,
     cameraX: 0,
     cameraZ: 0,
-    zoom: 2.2, // pixels per meter
+    zoom: 1.2, // pixels per meter
     lastPos: null,
     workedAreaM2: 0,
     isDragging: false,
@@ -585,11 +588,29 @@
     dragCamStartZ: 0,
     autoCenter: true,
 
+    loadMapImage(mapId = 'mapUS') {
+      if (this.currentMapId === mapId && this.mapImgLoaded) return;
+      this.currentMapId = mapId;
+      this.mapImgLoaded = false;
+      this.mapImg = new Image();
+      this.mapImg.onload = () => {
+        this.mapImgLoaded = true;
+        this.render();
+      };
+      this.mapImg.onerror = () => {
+        if (mapId !== 'mapUS') {
+          this.loadMapImage('mapUS');
+        }
+      };
+      this.mapImg.src = `/assets/maps/${mapId}.webp`;
+    },
+
     init() {
       this.canvas = els.mapCanvas;
       if (!this.canvas) return;
       this.ctx = this.canvas.getContext('2d');
       this.setupCanvasSize();
+      this.loadMapImage('mapUS');
       window.addEventListener('resize', () => this.setupCanvasSize());
 
       // Interactive Controls
@@ -714,8 +735,14 @@
         els.compassNeedle.style.transform = `rotate(${heading}deg)`;
       }
 
-      if (telemetry.environment && telemetry.environment.mapName && els.mapTitle) {
-        els.mapTitle.textContent = telemetry.environment.mapName.toUpperCase();
+      if (telemetry.environment) {
+        const env = telemetry.environment;
+        if (env.mapName && els.mapTitle) {
+          els.mapTitle.textContent = env.mapName.toUpperCase();
+        }
+        if (env.mapId && env.mapId !== this.currentMapId) {
+          this.loadMapImage(env.mapId);
+        }
       }
 
       // Track breadcrumb trail
@@ -761,34 +788,41 @@
       ctx.fillStyle = '#0a1017';
       ctx.fillRect(0, 0, w, h);
 
-      // Coordinate Grid Lines (every 50 meters)
-      const gridSizeM = 50;
-      const gridPx = gridSizeM * this.zoom;
-      const offsetX = ((cx - this.cameraX * this.zoom) % gridPx + gridPx) % gridPx;
-      const offsetY = ((cy + this.cameraZ * this.zoom) % gridPx + gridPx) % gridPx;
-
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-      for (let x = offsetX; x < w; x += gridPx) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
-      for (let y = offsetY; y < h; y += gridPx) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
-
-      // Convert world coordinate (x, z) to screen (px, py)
+      // Convert world coordinate (wx, wz) to screen (px, py)
+      // In FS25: North is -Z, South is +Z, West is -X, East is +X
       const toScreen = (wx, wz) => {
         return {
           x: cx + (wx - this.cameraX) * this.zoom,
-          y: cy - (wz - this.cameraZ) * this.zoom
+          y: cy + (wz - this.cameraZ) * this.zoom
         };
       };
+
+      // 1. Draw Real FS25 In-Game Map Overview Image (2048x2048m world bounds: -1024 to +1024)
+      if (this.mapImgLoaded && this.mapImg) {
+        const pTopLeft = toScreen(-1024, -1024);
+        const mapSizePx = 2048 * this.zoom;
+        ctx.drawImage(this.mapImg, pTopLeft.x, pTopLeft.y, mapSizePx, mapSizePx);
+
+        // Map boundary glow border
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(pTopLeft.x, pTopLeft.y, mapSizePx, mapSizePx);
+      } else {
+        // Fallback grid when map is loading
+        const gridSizeM = 50;
+        const gridPx = gridSizeM * this.zoom;
+        const offsetX = ((cx - this.cameraX * this.zoom) % gridPx + gridPx) % gridPx;
+        const offsetY = ((cy + this.cameraZ * this.zoom) % gridPx + gridPx) % gridPx;
+
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        for (let x = offsetX; x < w; x += gridPx) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        }
+        for (let y = offsetY; y < h; y += gridPx) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+      }
 
       // Draw Breadcrumb Swath Trail
       if (this.trail.length > 1) {

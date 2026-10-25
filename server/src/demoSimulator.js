@@ -130,11 +130,12 @@ class DemoSimulator {
           diffLockFront: false,
           diffLockRear: true
         },
+        tensionBeltsActive: !!this.state.belts,
         implements: [
           {
             index: 1,
             name: "Horsch Pronto 9 DC",
-            isSelected: true,
+            isSelected: this.state.activeToolIndex === 1,
             isLowered: this.state.toolLowered,
             isTurnedOn: this.state.ptoRunning,
             isFolded: false,
@@ -160,7 +161,7 @@ class DemoSimulator {
           {
             index: 2,
             name: "Weight 1500kg",
-            isSelected: false,
+            isSelected: this.state.activeToolIndex === 2,
             isLowered: false,
             isTurnedOn: false,
             isFolded: false,
@@ -178,7 +179,9 @@ class DemoSimulator {
         temperature: 22,
         weather: "SUNNY",
         money: this.state.money,
-        mapName: "Zielonka (FS25)"
+        mapName: "Zielonka (FS25)",
+        mapId: "mapEU",
+        mapSize: 2048
       }
     };
 
@@ -204,8 +207,11 @@ class DemoSimulator {
     }
     if (actionName === 'TOOL_LOWER' || actionName === 'TOOL_LOWER_ALL') this.state.toolLowered = !this.state.toolLowered;
     if (actionName === 'TOOL_PTO' || actionName === 'TOOL_PTO_ALL') this.state.ptoRunning = !this.state.ptoRunning;
+    if (actionName === 'TOOL_SELECT') {
+      this.state.activeToolIndex = (this.state.activeToolIndex === 1) ? 2 : 1;
+    }
     if (actionName === 'PIPE_TOGGLE') this.state.pipeOpen = !this.state.pipeOpen;
-    if (actionName === 'WIPERS_TOGGLE') this.state.wipers = !this.state.wipers;
+    if (actionName === 'TOGGLE_TIPSIDE') this.state.tipSide = ((this.state.tipSide || 1) % 3) + 1;
     if (actionName === 'TOGGLE_TENSION_BELTS') this.state.belts = !this.state.belts;
     if (actionName === 'COVER_TOGGLE') this.state.cover = !this.state.cover;
     if (actionName === 'AI_WORKER') this.state.aiActive = !this.state.aiActive;

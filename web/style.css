@@ -1880,12 +1880,12 @@ body.terminal-body {
   background: linear-gradient(180deg, #332712 0%, #21190a 100%) !important;
 }
 
-/* Wipers, Tension Belts, Cover Buttons */
-.btn-wipers.active-state {
+/* Tip Side, Tension Belts, Cover Buttons */
+.btn-tipside.active-state {
   border-color: #06b6d4 !important;
   box-shadow: 0 0 10px rgba(6, 182, 212, 0.4) !important;
 }
-.btn-wipers.active-state .btn-led {
+.btn-tipside.active-state .btn-led {
   background: #06b6d4 !important;
   box-shadow: 0 0 8px #06b6d4 !important;
 }

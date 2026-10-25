@@ -32,7 +32,7 @@ class InputSimulator {
 
       // Utility & Mechanics
       'TOGGLE_TENSION_BELTS': 'l',
-      'WIPERS_TOGGLE': 'p',
+      'TOGGLE_TIPSIDE': 'u',
       'COVER_TOGGLE': 'n'
     };
 
@@ -76,7 +76,13 @@ class InputSimulator {
       script = `[System.Windows.Forms.SendKeys]::SendWait('${escaped}')`;
     }
 
-    const psCommand = `Add-Type -AssemblyName System.Windows.Forms; ${script}`;
+    const psCommand = `
+      $ws = New-Object -ComObject WScript.Shell;
+      $p = Get-Process FarmingSimulator2025* -ErrorAction SilentlyContinue | Select-Object -First 1;
+      if ($p) { [void]$ws.AppActivate($p.Id); Start-Sleep -Milliseconds 25; }
+      Add-Type -AssemblyName System.Windows.Forms;
+      ${script}
+    `;
 
     const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', psCommand], {
       windowsHide: true
