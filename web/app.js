@@ -341,36 +341,36 @@
   }
 
   function syncButtonStates(veh) {
-    // Engine
-    const btnEngine = document.getElementById('btnEngine');
-    if (btnEngine) btnEngine.classList.toggle('active-state', veh.isEngineStarted);
+    // Engine buttons (Matrix & any other)
+    document.querySelectorAll('.btn-engine, #btnEngine').forEach(el => {
+      el.classList.toggle('active-state', !!veh.isEngineStarted);
+    });
 
-    // Cruise
-    const btnCruise = document.getElementById('btnCruiseToggle');
-    if (btnCruise && veh.cruiseControl) {
-      btnCruise.classList.toggle('active-state', veh.cruiseControl.isActive);
-    }
+    // Cruise buttons
+    document.querySelectorAll('.btn-cruise, #btnCruiseToggle').forEach(el => {
+      el.classList.toggle('active-state', !!(veh.cruiseControl && veh.cruiseControl.isActive));
+    });
 
-    // Beacon
-    const btnBeacon = document.getElementById('btnBeacon');
-    if (btnBeacon && veh.lights) {
-      btnBeacon.classList.toggle('active-state', veh.lights.beaconActive);
-    }
+    // Beacon buttons
+    document.querySelectorAll('.btn-beacon, #btnBeacon').forEach(el => {
+      el.classList.toggle('active-state', !!(veh.lights && veh.lights.beaconActive));
+    });
 
     // Primary tool status
     const primaryTool = (veh.implements || []).find(i => i.isSelected) || (veh.implements && veh.implements[0]);
     if (primaryTool) {
-      const btnLower = document.getElementById('btnToolLower');
-      if (btnLower) btnLower.classList.toggle('active-state', primaryTool.isLowered);
-
-      const btnPto = document.getElementById('btnToolPto');
-      if (btnPto) btnPto.classList.toggle('active-state', primaryTool.isTurnedOn);
-
-      const btnFold = document.getElementById('btnToolFold');
-      if (btnFold) btnFold.classList.toggle('active-state', primaryTool.isFolded);
-
-      const btnPipe = document.getElementById('btnPipe');
-      if (btnPipe) btnPipe.classList.toggle('active-state', primaryTool.pipeDischarging);
+      document.querySelectorAll('.btn-hydraulics, #btnToolLower').forEach(el => {
+        el.classList.toggle('active-state', !!primaryTool.isLowered);
+      });
+      document.querySelectorAll('.btn-pto, #btnToolPto').forEach(el => {
+        el.classList.toggle('active-state', !!primaryTool.isTurnedOn);
+      });
+      document.querySelectorAll('.btn-fold, #btnToolFold').forEach(el => {
+        el.classList.toggle('active-state', !!primaryTool.isFolded);
+      });
+      document.querySelectorAll('.btn-pipe, #btnPipe').forEach(el => {
+        el.classList.toggle('active-state', !!primaryTool.pipeDischarging);
+      });
     }
   }
 

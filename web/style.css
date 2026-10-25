@@ -440,7 +440,7 @@ body.terminal-body {
    ========================================================================== */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 310px 1fr 340px;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
   height: 100%;
 }
@@ -1582,19 +1582,21 @@ body.terminal-body {
 /* ==========================================================================
    10. RESPONSIVE DESIGN (TABLETS & PHONES)
    ========================================================================== */
-@media (min-width: 1200px) {
+@media (min-width: 900px) {
   .dashboard-grid {
-    grid-template-columns: 370px 1fr 340px;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
   }
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 900px) and (orientation: landscape) {
   .dashboard-grid {
-    grid-template-columns: 340px 1fr 320px;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px) and (orientation: portrait) {
   body.terminal-body {
     height: auto;
     overflow-y: auto;
