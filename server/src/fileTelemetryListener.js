@@ -1,14 +1,13 @@
 const fs = require('fs');
-const path = require('path');
 
 class FileTelemetryListener {
-  constructor({ paths = [], intervalMs = 40, onTelemetryUpdate = null }) {
+  constructor({ paths = [], intervalMs = 35, onTelemetryUpdate = null }) {
     this.paths = paths;
     this.intervalMs = intervalMs;
     this.onTelemetryUpdate = onTelemetryUpdate;
     this.intervalId = null;
     this.lastPacketTime = 0;
-    this.lastMtime = 0;
+    this.lastRaw = '';
     this.lastSeq = -1;
     this.latestTelemetry = null;
     this.packetCount = 0;
@@ -32,18 +31,14 @@ class FileTelemetryListener {
       if (!fs.existsSync(targetPath)) continue;
 
       try {
-        const stats = fs.statSync(targetPath);
-        if (stats.mtimeMs <= this.lastMtime) continue;
-        this.lastMtime = stats.mtimeMs;
-
         const raw = fs.readFileSync(targetPath, 'utf8').trim();
-        if (!raw || raw.length < 5) continue;
+        if (!raw || raw.length < 5 || raw === this.lastRaw) continue;
+        this.lastRaw = raw;
 
         let data = null;
         if (raw.startsWith('{')) {
           data = JSON.parse(raw);
         } else if (raw.includes('payload="')) {
-          // GIANTS XML fallback format: payload="..."
           const match = raw.match(/payload="([^"]+)"/);
           if (match && match[1]) {
             const unescaped = match[1]
@@ -55,10 +50,12 @@ class FileTelemetryListener {
           }
         }
 
-        if (data && data.vehicle && data.seq !== this.lastSeq) {
+        if (data && (data.inGame || data.vehicle) && data.seq !== this.lastSeq) {
           this.lastSeq = data.seq;
           this.lastPacketTime = Date.now();
           this.packetCount++;
+          data._receivedAt = this.lastPacketTime;
+          data._isDemo = false;
           this.latestTelemetry = data;
 
           if (typeof this.onTelemetryUpdate === 'function') {
@@ -67,12 +64,12 @@ class FileTelemetryListener {
           break;
         }
       } catch (err) {
-        // Concurrent write collision is expected during rapid file replacement, ignore and wait for next tick
+        // File write concurrency, ignore
       }
     }
   }
 
-  hasRecentData(maxAgeMs = 2000) {
+  hasRecentData(maxAgeMs = 2500) {
     return (Date.now() - this.lastPacketTime) < maxAgeMs;
   }
 
