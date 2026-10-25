@@ -12,7 +12,7 @@ print("[FSTel]   type(io) = " .. type(io))
 if type(io) == "table" then
     print("[FSTel]   type(io.open) = " .. type(io.open))
 end
-print("[FSTel]   type(createXMLFile) = " .. type(createXMLFile))
+print("[FSTel]   type(loadXMLFile) = " .. type(loadXMLFile))
 print("[FSTel]   type(getUserProfileAppPath) = " .. type(getUserProfileAppPath))
 if getUserProfileAppPath ~= nil then
     print("[FSTel]   getUserProfileAppPath() = " .. tostring(getUserProfileAppPath()))
@@ -31,7 +31,7 @@ FSTelTelemetry.lastSendTime = 0
 FSTelTelemetry.packetSeq = 0
 FSTelTelemetry.lastActionSeq = 0
 FSTelTelemetry.jsonFilePath = nil
-FSTelTelemetry.actionFilePath = nil
+FSTelTelemetry.actionXmlPath = nil
 FSTelTelemetry.xmlFilePath = nil
 FSTelTelemetry.useIoOpen = false
 FSTelTelemetry.useXmlFallback = false
@@ -139,7 +139,7 @@ function FSTelTelemetry:initTransport()
     end
 
     self.jsonFilePath = basePath .. "fstel_telemetry.json"
-    self.actionFilePath = basePath .. "fstel_action.json"
+    self.actionXmlPath = basePath .. "fstel_action.xml"
     self.xmlFilePath = basePath .. "fstel_telemetry.xml"
 
     if type(io) == "table" and type(io.open) == "function" then
@@ -369,17 +369,15 @@ function FSTelTelemetry:executeAction(actionName, vehicle)
 end
 
 function FSTelTelemetry:processIncomingActions(vehicle)
-    if self.actionFilePath == nil or not self.useIoOpen then return end
+    if self.actionXmlPath == nil then return end
 
     pcall(function()
-        local f = io.open(self.actionFilePath, "r")
-        if f ~= nil then
-            local content = f:read("*a")
-            f:close()
-
-            if content ~= nil and #content > 5 then
-                local seq = tonumber(content:match('"seq":%s*(%d+)')) or 0
-                local action = content:match('"action":%s*"([^"]+)"')
+        if fileExists ~= nil and fileExists(self.actionXmlPath) and loadXMLFile ~= nil then
+            local xmlId = loadXMLFile("fstelAction", self.actionXmlPath)
+            if xmlId ~= nil and xmlId ~= 0 then
+                local seq = getXMLInt(xmlId, "action#seq") or 0
+                local action = getXMLString(xmlId, "action#name")
+                delete(xmlId)
 
                 if seq > 0 and seq ~= self.lastActionSeq and action ~= nil then
                     self.lastActionSeq = seq
@@ -662,7 +660,7 @@ function FSTelTelemetry:safeUpdate(dt)
 
     local vehicle = self:getControlledVehicle()
 
-    -- Process any incoming button commands from Web Terminal
+    -- Process any incoming button commands from Web Terminal (via GIANTS native loadXMLFile)
     self:processIncomingActions(vehicle)
 
     local currentTime = g_time or 0

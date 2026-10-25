@@ -30,19 +30,19 @@ const inputSimulator = new InputSimulator();
 let latestData = null;
 let useDemoFallback = true; // Auto demo when FS25 is not actively streaming
 
-// Action file dispatching directly to FS25 Mod in-game
+// Action file dispatching directly to FS25 Mod in-game (using GIANTS native XML API)
 const actionFilePaths = [
-  'D:/Documents/My Games/FarmingSimulator2025/fstel_action.json',
-  path.join(os.homedir(), 'Documents/My Games/FarmingSimulator2025/fstel_action.json')
+  'D:/Documents/My Games/FarmingSimulator2025/fstel_action.xml',
+  path.join(os.homedir(), 'Documents/My Games/FarmingSimulator2025/fstel_action.xml')
 ];
 
 let actionSeq = 0;
 function dispatchGameAction(actionName) {
   actionSeq++;
-  const payload = JSON.stringify({ seq: actionSeq, action: actionName, time: Date.now() });
+  const xmlPayload = `<action seq="${actionSeq}" name="${actionName}"/>\n`;
   for (const p of actionFilePaths) {
     try {
-      fs.writeFileSync(p, payload, 'utf8');
+      fs.writeFileSync(p, xmlPayload, 'utf8');
     } catch (e) {}
   }
 }
